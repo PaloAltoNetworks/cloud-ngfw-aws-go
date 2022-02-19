@@ -26,10 +26,6 @@ type authData struct {
 	Enabled        bool    `json:"Enabled"`
 }
 
-func (a authResponse) Ok() bool {
-	return a.Status.Ok()
-}
-
-func (a authResponse) Error() string {
-	return a.Status.Error()
+func (o authResponse) Failed() *api.Status {
+	return o.Status.Failed()
 }

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -153,7 +154,7 @@ func (c *Client) RefreshJwts() error {
 
 		var ans authResponse
 		_, err = c.Communicate(
-			"", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, jwtReq, &ans, result.Credentials)
+			"", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials)
 		if err != nil {
 			return err
 		}
@@ -176,7 +177,7 @@ func (c *Client) RefreshJwts() error {
 
 		var ans authResponse
 		_, err = c.Communicate(
-			"", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, jwtReq, &ans, result.Credentials)
+			"", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, nil, jwtReq, &ans, result.Credentials)
 		if err != nil {
 			return err
 		}
@@ -190,23 +191,30 @@ func (c *Client) RefreshJwts() error {
 /*
 Communicate sends information to the API.
 
-Param auth should be one of the permissions constants.
+Param auth should be one of the permissions constants or an empty string,
+which means not to add any JWTs to the API call.
 
 Param method should be one of http.Method constants.
 
-Param path should be a slice of path parts that will be joined together with the
-base apiPrefix to create the final API endpoint.
+Param path should be a slice of path parts that will be joined together with
+the base apiPrefix to create the final API endpoint.
 
-Param input is an interface that can be passed in to json.Marshal() to send to the API.
+Param queryParams are the query params that should be appended to the API URL.
+
+Param input is an interface that can be passed in to json.Marshal() to send to
+the API.
 
 Param output is a pointer to a struct that will be filled with json.Unmarshal().
 
-Param creds is only used internally for refreshing the JWTs and can otherwise be ignored.
+Param creds is only used internally for refreshing the JWTs and can otherwise
+be ignored.
 
-This function returns the content of the body from the API call and any errors that
-may have been present.
+This function returns the content of the body from the API call and any errors
+that may have been present.  If this function got all the way to invoking the
+API and getting a response, then the error passed back will be a `api.Status`
+if an error was detected.
 */
-func (c *Client) Communicate(auth, method string, path []string, input interface{}, output api.Oker, creds ...*sts.Credentials) ([]byte, error) {
+func (c *Client) Communicate(auth, method string, path []string, queryParams url.Values, input interface{}, output api.Failure, creds ...*sts.Credentials) ([]byte, error) {
 	// Sanity check the input.
 	if len(creds) > 1 {
 		return nil, fmt.Errorf("Only one credentials is allowed")
@@ -227,14 +235,18 @@ func (c *Client) Communicate(auth, method string, path []string, input interface
 		log.Printf("sending: %s", data)
 	}
 
-	// Testing.
 	if len(c.testData) > 0 {
+		// Testing.
 		body = []byte(`{"test"}`)
 	} else {
-		// Create the request.
+		// Create the API request.
+		var qp string
+		if len(queryParams) > 0 {
+			qp = fmt.Sprintf("?%s", queryParams.Encode())
+		}
 		req, err := http.NewRequest(
 			method,
-			fmt.Sprintf("%s/%s", c.apiPrefix, strings.Join(path, "/")),
+			fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
 			strings.NewReader(string(data)),
 		)
 		if err != nil {
@@ -252,6 +264,7 @@ func (c *Client) Communicate(auth, method string, path []string, input interface
 		default:
 			return nil, fmt.Errorf("Unknown auth type: %q", auth)
 		}
+		// Add in the custom headers.
 		for k, v := range c.Headers {
 			req.Header.Set(k, v)
 		}
@@ -284,21 +297,29 @@ func (c *Client) Communicate(auth, method string, path []string, input interface
 		}
 	}
 
+	// Log the response.
 	if c.Logging&LogReceive == LogReceive {
 		log.Printf("received: %s", body)
 	}
 
-	if output == nil {
-		return body, nil
-	}
+	// Check for errors and unmarshal the response into the given interface.
+	if output != nil {
+		if err = json.Unmarshal(body, output); err != nil {
+			return body, err
+		}
 
-	err = json.Unmarshal(body, output)
-	if err != nil {
-		return body, err
-	}
+		if e2 := output.Failed(); e2 != nil {
+			return body, e2
+		}
+	} else {
+		var generic api.Response
+		if err = json.Unmarshal(body, &generic); err != nil {
+			return body, err
+		}
 
-	if !output.Ok() {
-		return body, output
+		if e2 := generic.Failed(); e2 != nil {
+			return body, e2
+		}
 	}
 
 	return body, nil
@@ -397,7 +418,7 @@ func (c *Client) initCon() error {
 
 	// Verify cert.
 	if !c.SkipVerifyCertificate {
-		if val := os.Getenv("CLOUD_NGFW_VERIFY_CERTIFICATE"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUD_NGFW_SKIP_VERIFY_CERTIFICATE"); c.CheckEnvironment && val != "" {
 			if vcb, err := strconv.ParseBool(val); err != nil {
 				return err
 			} else if vcb {
