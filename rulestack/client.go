@@ -1,18 +1,30 @@
 package rulestack
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/permissions"
 )
 
+// Client is a client for this collection.
+type Client struct {
+	client api.Client
+}
+
+// NewClient returns a new client for this collection.
+func NewClient(client api.Client) *Client {
+	return &Client{client: client}
+}
+
 // List returns a list of objects.
-func List(client api.Client, input ListInput) (ListOutput, error) {
-	client.Log(http.MethodGet, "list rulestacks")
+func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) {
+	c.client.Log(http.MethodGet, "list rulestacks")
 
 	var ans ListOutput
-	_, err := client.Communicate(
+	_, err := c.client.Communicate(
+		ctx,
 		permissions.Rulestack,
 		http.MethodGet,
 		[]string{"v1", "config", "rulestacks"},
@@ -25,10 +37,11 @@ func List(client api.Client, input ListInput) (ListOutput, error) {
 }
 
 // Create creates an object.
-func Create(client api.Client, input Info) error {
-	client.Log(http.MethodPost, "create rulestack: %s", input.Name)
+func (c *Client) Create(ctx context.Context, input Info) error {
+	c.client.Log(http.MethodPost, "create rulestack: %s", input.Name)
 
-	_, err := client.Communicate(
+	_, err := c.client.Communicate(
+		ctx,
 		permissions.Rulestack,
 		http.MethodPost,
 		[]string{"v1", "config", "rulestacks"},
@@ -41,14 +54,15 @@ func Create(client api.Client, input Info) error {
 }
 
 // Read returns information on the given object.
-func Read(client api.Client, input ReadInput) (ReadOutput, error) {
+func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) {
 	name := input.Name
 	input.Name = ""
 
-	client.Log(http.MethodGet, "describe rulestack: %s", name)
+	c.client.Log(http.MethodGet, "describe rulestack: %s", name)
 
 	var ans ReadOutput
-	_, err := client.Communicate(
+	_, err := c.client.Communicate(
+		ctx,
 		permissions.Rulestack,
 		http.MethodGet,
 		[]string{"v1", "config", "rulestacks", name},
@@ -61,13 +75,14 @@ func Read(client api.Client, input ReadInput) (ReadOutput, error) {
 }
 
 // Update updates the given object.
-func Update(client api.Client, input Info) error {
+func (c *Client) Update(ctx context.Context, input Info) error {
 	name := input.Name
 	input.Name = ""
 
-	client.Log(http.MethodPut, "updating rulestack: %s", name)
+	c.client.Log(http.MethodPut, "updating rulestack: %s", name)
 
-	_, err := client.Communicate(
+	_, err := c.client.Communicate(
+		ctx,
 		permissions.Rulestack,
 		http.MethodPut,
 		[]string{"v1", "config", "rulestacks", name},
@@ -80,10 +95,11 @@ func Update(client api.Client, input Info) error {
 }
 
 // Delete removes the given object from the config.
-func Delete(client api.Client, name string) error {
-	client.Log(http.MethodDelete, "delete rulestack: %s", name)
+func (c *Client) Delete(ctx context.Context, name string) error {
+	c.client.Log(http.MethodDelete, "delete rulestack: %s", name)
 
-	_, err := client.Communicate(
+	_, err := c.client.Communicate(
+		ctx,
 		permissions.Rulestack,
 		http.MethodDelete,
 		[]string{"v1", "config", "rulestacks", name},

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/url"
 
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -11,5 +12,5 @@ type Client interface {
 	Log(string, string, ...interface{})
 
 	// API functions.
-	Communicate(string, string, []string, url.Values, interface{}, Failure, ...*sts.Credentials) ([]byte, error)
+	Communicate(context.Context, string, string, []string, url.Values, interface{}, Failure, ...*sts.Credentials) ([]byte, error)
 }

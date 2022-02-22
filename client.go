@@ -1,6 +1,7 @@
 package cloudngfw
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -154,7 +155,7 @@ func (c *Client) RefreshJwts() error {
 
 		var ans authResponse
 		_, err = c.Communicate(
-			"", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials)
+			context.Background(), "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials)
 		if err != nil {
 			return err
 		}
@@ -177,7 +178,7 @@ func (c *Client) RefreshJwts() error {
 
 		var ans authResponse
 		_, err = c.Communicate(
-			"", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, nil, jwtReq, &ans, result.Credentials)
+			context.Background(), "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, nil, jwtReq, &ans, result.Credentials)
 		if err != nil {
 			return err
 		}
@@ -214,7 +215,7 @@ that may have been present.  If this function got all the way to invoking the
 API and getting a response, then the error passed back will be a `api.Status`
 if an error was detected.
 */
-func (c *Client) Communicate(auth, method string, path []string, queryParams url.Values, input interface{}, output api.Failure, creds ...*sts.Credentials) ([]byte, error) {
+func (c *Client) Communicate(ctx context.Context, auth, method string, path []string, queryParams url.Values, input interface{}, output api.Failure, creds ...*sts.Credentials) ([]byte, error) {
 	// Sanity check the input.
 	if len(creds) > 1 {
 		return nil, fmt.Errorf("Only one credentials is allowed")
@@ -244,7 +245,8 @@ func (c *Client) Communicate(auth, method string, path []string, queryParams url
 		if len(queryParams) > 0 {
 			qp = fmt.Sprintf("?%s", queryParams.Encode())
 		}
-		req, err := http.NewRequest(
+		req, err := http.NewRequestWithContext(
+			ctx,
 			method,
 			fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
 			strings.NewReader(string(data)),
