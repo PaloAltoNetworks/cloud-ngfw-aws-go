@@ -1,4 +1,4 @@
-package cloudngfw
+package awsngfw
 
 import (
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"

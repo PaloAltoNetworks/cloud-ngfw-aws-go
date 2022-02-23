@@ -1,4 +1,4 @@
-package cloudngfw
+package awsngfw
 
 import (
 	"context"
@@ -33,12 +33,14 @@ type Client struct {
 	Protocol  string            `json:"protocol"`
 	Timeout   int               `json:"timeout"`
 	Headers   map[string]string `json:"headers"`
+	Agent     string            `json:"agent"`
 
 	LfaArn string `json:"lfa-arn"`
 	LraArn string `json:"lra-arn"`
 	Arn    string `json:"arn"`
 
-	CheckEnvironment bool `json:"-"`
+	AuthFile         string `json:"auth-file"`
+	CheckEnvironment bool   `json:"-"`
 
 	SkipVerifyCertificate bool            `json:"skip-verify-certificate"`
 	Transport             *http.Transport `json:"-"`
@@ -51,7 +53,6 @@ type Client struct {
 	RulestackJwt string `json:"-"`
 
 	// Internal variables.
-	credsFile string
 	apiPrefix string
 	con       *http.Client
 
@@ -257,6 +258,7 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 
 		// Configure headers.
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", c.Agent)
 		switch auth {
 		case "":
 		case permissions.Firewall:
@@ -335,10 +337,10 @@ func (c *Client) initCon() error {
 
 	// Load up the JSON config file.
 	json_client := &Client{}
-	if c.credsFile != "" {
+	if c.AuthFile != "" {
 		var b []byte
 		if len(c.testData) == 0 {
-			b, err = ioutil.ReadFile(c.credsFile)
+			b, err = ioutil.ReadFile(c.AuthFile)
 		} else {
 			b, err = c.authFileContent, nil
 		}
@@ -395,7 +397,7 @@ func (c *Client) initCon() error {
 		} else if json_client.Timeout != 0 {
 			c.Timeout = json_client.Timeout
 		} else {
-			c.Timeout = 20
+			c.Timeout = 30
 		}
 	}
 	if c.Timeout <= 0 {
@@ -468,7 +470,7 @@ func (c *Client) initCon() error {
 			}
 			c.Logging = lv
 		} else {
-			c.Logging = LogLogin | LogPost | LogPut | LogDelete
+			c.Logging = LogLogin | LogGet | LogPost | LogPut | LogDelete
 		}
 	}
 
@@ -495,7 +497,7 @@ func (c *Client) initCon() error {
 
 	// Configure the uri prefix.
 	c.apiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.Host)
-	//c.apiPrefix = fmt.Sprintf("%s://api.%s.aws.cloudngfw.com", c.Protocol, c.Region)
+	//c.apiPrefix = fmt.Sprintf("%s://api.%s.aws.awsngfw.com", c.Protocol, c.Region)
 
 	return nil
 }

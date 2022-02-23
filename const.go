@@ -1,4 +1,4 @@
-package cloudngfw
+package awsngfw
 
 // Logging constants.
 const (
