@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -29,4 +30,26 @@ func (s Status) ObjectNotFound() bool {
 
 func (s Status) Error() string {
 	return fmt.Sprintf("Error(%d): %s", s.Code, s.Reason)
+}
+
+func IsPathUnknownError(path []string, body []byte) error {
+	var ans unknownApi
+	if err := json.Unmarshal(body, &ans); err == nil {
+		if ans.Message != "" {
+			return NewUnknownPathError(path)
+		}
+	}
+
+	return nil
+}
+
+func NewUnknownPathError(v []string) *Status {
+	return &Status{
+		Code:   -1,
+		Reason: fmt.Sprintf("Unknown path: /%s", strings.Join(v, "/")),
+	}
+}
+
+type unknownApi struct {
+	Message string `json:"message"`
 }
