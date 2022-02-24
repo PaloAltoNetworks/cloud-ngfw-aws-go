@@ -469,6 +469,11 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		log.Printf("received: %s", body)
 	}
 
+	// Check for unknown path error first.
+	if err := api.IsPathUnknownError(path, body); err != nil {
+		return body, err
+	}
+
 	// Check for errors and unmarshal the response into the given interface.
 	if output != nil {
 		if err = json.Unmarshal(body, output); err != nil {
