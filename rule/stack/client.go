@@ -1,4 +1,4 @@
-package rulestack
+package stack
 
 import (
 	"context"
@@ -56,7 +56,6 @@ func (c *Client) Create(ctx context.Context, input Info) error {
 // Read returns information on the given object.
 func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) {
 	name := input.Name
-	input.Name = ""
 
 	c.client.Log(http.MethodGet, "describe rulestack: %s", name)
 

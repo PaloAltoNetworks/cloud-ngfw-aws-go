@@ -1,4 +1,4 @@
-package rulestack
+package stack
 
 import (
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
