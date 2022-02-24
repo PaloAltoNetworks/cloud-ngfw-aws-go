@@ -45,6 +45,7 @@ type Client struct {
 	SkipVerifyCertificate bool            `json:"skip-verify-certificate"`
 	Transport             *http.Transport `json:"-"`
 
+	// Various logging params.
 	Logging               uint32   `json:"-"`
 	LoggingFromInitialize []string `json:"logging"`
 
@@ -54,28 +55,15 @@ type Client struct {
 
 	// Internal variables.
 	apiPrefix string
-	con       *http.Client
+
+	// Initialized during Setup().
+	HttpClient *http.Client
 
 	// Variables for testing.
 	testData        [][]byte
 	testErrors      []error
 	testIndex       int
 	authFileContent []byte
-}
-
-// Initialize opens a connection to the cloud NGFW API and retrieves all JWTs.
-func (c *Client) Initialize() error {
-	var err error
-
-	if len(c.testData) > 0 {
-		c.Host = "test.nz"
-	} else if err = c.initCon(); err != nil {
-		return err
-	} else if err = c.RefreshJwts(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Log logs an API action.
@@ -104,234 +92,9 @@ func (c *Client) Log(method, msg string, i ...interface{}) {
 	log.Printf("(%s) %s", method, fmt.Sprintf(msg, i...))
 }
 
-// RefreshJwts refreshes all JWTs and stores them for future API calls.
-func (c *Client) RefreshJwts() error {
-	if c.Logging&LogLogin == LogLogin {
-		log.Printf("(login) refreshing JWTs...")
-	}
-
-	jwtReq := getJwt{
-		Expires: 90,
-		KeyInfo: &jwtKeyInfo{
-			Region: c.Region,
-			Tenant: "XY",
-		},
-	}
-
-	var creds *credentials.Credentials
-	if c.AccessKey != "" || c.SecretKey != "" {
-		creds = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
-	}
-
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Credentials: creds,
-			Region:      aws.String(c.Region),
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	svc := sts.New(sess)
-
-	// Get a JWT that works for both firewall and rulestack admins.
-	if c.Arn != "" {
-		return fmt.Errorf("No endpoint yet known for shared ARN JWT retrieval")
-	}
-
-	// Get a firewall JWT.
-	if c.LfaArn != "" {
-		if c.Logging&LogLogin == LogLogin {
-			log.Printf("(login) refreshing firewall JWT...")
-		}
-		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-			RoleArn:         aws.String(c.LfaArn),
-			RoleSessionName: aws.String("sdk_session"),
-		})
-		if err != nil {
-			return err
-		}
-
-		var ans authResponse
-		_, err = c.Communicate(
-			context.Background(), "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials)
-		if err != nil {
-			return err
-		}
-
-		c.FirewallJwt = ans.Resp.Jwt
-	}
-
-	// Get rulestack JWT.
-	if c.LraArn != "" {
-		if c.Logging&LogLogin == LogLogin {
-			log.Printf("(login) refreshing rulestack JWT...")
-		}
-		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-			RoleArn:         aws.String(c.LraArn),
-			RoleSessionName: aws.String("sdk_session"),
-		})
-		if err != nil {
-			return err
-		}
-
-		var ans authResponse
-		_, err = c.Communicate(
-			context.Background(), "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, nil, jwtReq, &ans, result.Credentials)
-		if err != nil {
-			return err
-		}
-
-		c.RulestackJwt = ans.Resp.Jwt
-	}
-
-	return nil
-}
-
-/*
-Communicate sends information to the API.
-
-Param auth should be one of the permissions constants or an empty string,
-which means not to add any JWTs to the API call.
-
-Param method should be one of http.Method constants.
-
-Param path should be a slice of path parts that will be joined together with
-the base apiPrefix to create the final API endpoint.
-
-Param queryParams are the query params that should be appended to the API URL.
-
-Param input is an interface that can be passed in to json.Marshal() to send to
-the API.
-
-Param output is a pointer to a struct that will be filled with json.Unmarshal().
-
-Param creds is only used internally for refreshing the JWTs and can otherwise
-be ignored.
-
-This function returns the content of the body from the API call and any errors
-that may have been present.  If this function got all the way to invoking the
-API and getting a response, then the error passed back will be a `api.Status`
-if an error was detected.
-*/
-func (c *Client) Communicate(ctx context.Context, auth, method string, path []string, queryParams url.Values, input interface{}, output api.Failure, creds ...*sts.Credentials) ([]byte, error) {
-	// Sanity check the input.
-	if len(creds) > 1 {
-		return nil, fmt.Errorf("Only one credentials is allowed")
-	}
-
-	var err error
-	var body []byte
-	var data []byte
-
-	// Convert input into JSON.
-	if input != nil {
-		data, err = json.Marshal(input)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if c.Logging&LogSend == LogSend {
-		log.Printf("sending: %s", data)
-	}
-
-	if len(c.testData) > 0 {
-		// Testing.
-		body = []byte(`{"test"}`)
-	} else {
-		// Create the API request.
-		var qp string
-		if len(queryParams) > 0 {
-			qp = fmt.Sprintf("?%s", queryParams.Encode())
-		}
-		req, err := http.NewRequestWithContext(
-			ctx,
-			method,
-			fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
-			strings.NewReader(string(data)),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		// Configure headers.
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", c.Agent)
-		switch auth {
-		case "":
-		case permissions.Firewall:
-			req.Header.Set("Authorization", c.FirewallJwt)
-		case permissions.Rulestack:
-			req.Header.Set("Authorization", c.RulestackJwt)
-		default:
-			return nil, fmt.Errorf("Unknown auth type: %q", auth)
-		}
-		// Add in the custom headers.
-		for k, v := range c.Headers {
-			req.Header.Set(k, v)
-		}
-
-		// Optional: v4 sign the request.
-		if len(creds) == 1 {
-			prov := provider{
-				Value: credentials.Value{
-					AccessKeyID:     *creds[0].AccessKeyId,
-					SecretAccessKey: *creds[0].SecretAccessKey,
-					SessionToken:    *creds[0].SessionToken,
-				},
-			}
-			signer := v4.NewSigner(credentials.NewCredentials(prov))
-			_, err = signer.Sign(req, strings.NewReader(string(data)), "execute-api", c.Region, time.Now())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Perform the API action.
-		resp, err := c.con.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		body, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Log the response.
-	if c.Logging&LogReceive == LogReceive {
-		log.Printf("received: %s", body)
-	}
-
-	// Check for errors and unmarshal the response into the given interface.
-	if output != nil {
-		if err = json.Unmarshal(body, output); err != nil {
-			return body, err
-		}
-
-		if e2 := output.Failed(); e2 != nil {
-			return body, e2
-		}
-	} else {
-		var generic api.Response
-		if err = json.Unmarshal(body, &generic); err != nil {
-			return body, err
-		}
-
-		if e2 := generic.Failed(); e2 != nil {
-			return body, e2
-		}
-	}
-
-	return body, nil
-}
-
-/* Internal functions. */
-
-func (c *Client) initCon() error {
+// Setup configures the HttpClient param according to the combination of
+// locally defined params, environment variables, and the JSON config file.
+func (c *Client) Setup() error {
 	var err error
 	var tout time.Duration
 
@@ -483,7 +246,7 @@ func (c *Client) initCon() error {
 			},
 		}
 	}
-	c.con = &http.Client{
+	c.HttpClient = &http.Client{
 		Transport: c.Transport,
 		Timeout:   tout,
 	}
@@ -500,4 +263,231 @@ func (c *Client) initCon() error {
 	//c.apiPrefix = fmt.Sprintf("%s://api.%s.aws.awsngfw.com", c.Protocol, c.Region)
 
 	return nil
+}
+
+// RefreshJwts refreshes all JWTs and stores them for future API calls.
+func (c *Client) RefreshJwts(ctx context.Context) error {
+	if c.Logging&LogLogin == LogLogin {
+		log.Printf("(login) refreshing JWTs...")
+	}
+
+	jwtReq := getJwt{
+		Expires: 90,
+		KeyInfo: &jwtKeyInfo{
+			Region: c.Region,
+			Tenant: "XY",
+		},
+	}
+
+	var creds *credentials.Credentials
+	if c.AccessKey != "" || c.SecretKey != "" {
+		creds = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
+	}
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Credentials: creds,
+			Region:      aws.String(c.Region),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	svc := sts.New(sess)
+
+	// Get a JWT that works for both firewall and rulestack admins.
+	if c.Arn != "" {
+		return fmt.Errorf("No endpoint yet known for shared ARN JWT retrieval")
+	}
+
+	// Get a firewall JWT.
+	if c.LfaArn != "" {
+		if c.Logging&LogLogin == LogLogin {
+			log.Printf("(login) refreshing firewall JWT...")
+		}
+		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
+			RoleArn:         aws.String(c.LfaArn),
+			RoleSessionName: aws.String("sdk_session"),
+		})
+		if err != nil {
+			return err
+		}
+
+		var ans authResponse
+		_, err = c.Communicate(
+			ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials,
+		)
+		if err != nil {
+			return err
+		}
+
+		c.FirewallJwt = ans.Resp.Jwt
+	}
+
+	// Get rulestack JWT.
+	if c.LraArn != "" {
+		if c.Logging&LogLogin == LogLogin {
+			log.Printf("(login) refreshing rulestack JWT...")
+		}
+		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
+			RoleArn:         aws.String(c.LraArn),
+			RoleSessionName: aws.String("sdk_session"),
+		})
+		if err != nil {
+			return err
+		}
+
+		var ans authResponse
+		_, err = c.Communicate(
+			ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, nil, jwtReq, &ans, result.Credentials,
+		)
+		if err != nil {
+			return err
+		}
+
+		c.RulestackJwt = ans.Resp.Jwt
+	}
+
+	return nil
+}
+
+/*
+Communicate sends information to the API.
+
+Param auth should be one of the permissions constants or an empty string,
+which means not to add any JWTs to the API call.
+
+Param method should be one of http.Method constants.
+
+Param path should be a slice of path parts that will be joined together with
+the base apiPrefix to create the final API endpoint.
+
+Param queryParams are the query params that should be appended to the API URL.
+
+Param input is an interface that can be passed in to json.Marshal() to send to
+the API.
+
+Param output is a pointer to a struct that will be filled with json.Unmarshal().
+
+Param creds is only used internally for refreshing the JWTs and can otherwise
+be ignored.
+
+This function returns the content of the body from the API call and any errors
+that may have been present.  If this function got all the way to invoking the
+API and getting a response, then the error passed back will be a `api.Status`
+if an error was detected.
+*/
+func (c *Client) Communicate(ctx context.Context, auth, method string, path []string, queryParams url.Values, input interface{}, output api.Failure, creds ...*sts.Credentials) ([]byte, error) {
+	// Sanity check the input.
+	if len(creds) > 1 {
+		return nil, fmt.Errorf("Only one credentials is allowed")
+	}
+
+	var err error
+	var body []byte
+	var data []byte
+
+	// Convert input into JSON.
+	if input != nil {
+		data, err = json.Marshal(input)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if c.Logging&LogSend == LogSend {
+		log.Printf("sending: %s", data)
+	}
+
+	if len(c.testData) > 0 {
+		// Testing.
+		body = []byte(`{"test"}`)
+	} else {
+		// Create the API request.
+		var qp string
+		if len(queryParams) > 0 {
+			qp = fmt.Sprintf("?%s", queryParams.Encode())
+		}
+		req, err := http.NewRequestWithContext(
+			ctx,
+			method,
+			fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
+			strings.NewReader(string(data)),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Configure headers.
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", c.Agent)
+		switch auth {
+		case "":
+		case permissions.Firewall:
+			req.Header.Set("Authorization", c.FirewallJwt)
+		case permissions.Rulestack:
+			req.Header.Set("Authorization", c.RulestackJwt)
+		default:
+			return nil, fmt.Errorf("Unknown auth type: %q", auth)
+		}
+		// Add in the custom headers.
+		for k, v := range c.Headers {
+			req.Header.Set(k, v)
+		}
+
+		// Optional: v4 sign the request.
+		if len(creds) == 1 {
+			prov := provider{
+				Value: credentials.Value{
+					AccessKeyID:     *creds[0].AccessKeyId,
+					SecretAccessKey: *creds[0].SecretAccessKey,
+					SessionToken:    *creds[0].SessionToken,
+				},
+			}
+			signer := v4.NewSigner(credentials.NewCredentials(prov))
+			_, err = signer.Sign(req, strings.NewReader(string(data)), "execute-api", c.Region, time.Now())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Perform the API action.
+		resp, err := c.HttpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		body, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Log the response.
+	if c.Logging&LogReceive == LogReceive {
+		log.Printf("received: %s", body)
+	}
+
+	// Check for errors and unmarshal the response into the given interface.
+	if output != nil {
+		if err = json.Unmarshal(body, output); err != nil {
+			return body, err
+		}
+
+		if e2 := output.Failed(); e2 != nil {
+			return body, e2
+		}
+	} else {
+		var generic api.Response
+		if err = json.Unmarshal(body, &generic); err != nil {
+			return body, err
+		}
+
+		if e2 := generic.Failed(); e2 != nil {
+			return body, e2
+		}
+	}
+
+	return body, nil
 }
