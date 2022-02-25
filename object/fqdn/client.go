@@ -20,7 +20,7 @@ func NewClient(client api.Client) *Client {
 
 // List returns a list of objects.
 func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) {
-	c.client.Log(http.MethodGet, "list rulestack %q pqdn lists", input.Rulestack)
+	c.client.Log(http.MethodGet, "list rulestack %q fqdn lists", input.Rulestack)
 
 	var ans ListOutput
 	_, err := c.client.Communicate(
