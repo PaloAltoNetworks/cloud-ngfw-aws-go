@@ -409,6 +409,9 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		if len(queryParams) > 0 {
 			qp = fmt.Sprintf("?%s", queryParams.Encode())
 		}
+		if c.Logging&LogPath == LogPath {
+			log.Printf("path: %s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp)
+		}
 		req, err := http.NewRequestWithContext(
 			ctx,
 			method,
