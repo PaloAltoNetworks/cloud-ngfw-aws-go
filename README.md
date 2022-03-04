@@ -20,6 +20,7 @@ Example Script
 package main
 
 import (
+    "context"
     "log"
 
     "github.com/paloaltonetworks/cloud-ngfw-aws-go"
@@ -28,15 +29,19 @@ import (
 func main() {
     var err error
 
-    c := cloudngfw.Client{
+    c := &awsngfw.Client{
         Host: "api.endpoint.com",
         Region: "us-east-1",
         LfaArn: "arn:aws:iam::123456789:role/CloudNgfwFirewallAdmin",
         LraArn: "arn:aws:iam::123456789:role/CloudNgfwRulestackAdmin",
     }
-    if err = c.Initialize(); err != nil {
+    if err = c.Setup(); err != nil {
         log.Fatal(err)
     }
+
+    if err = c.RefreshJwts(context.TODO()); err != nil {
+		log.Fatal(err)
+	}
 
     log.Printf("Firewall JWT: %s", c.FirewallJwt)
     log.Printf("Rulestack JWT: %s", c.RulestackJwt)
