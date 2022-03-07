@@ -80,8 +80,8 @@ func (o ReadOutput) Failed() *api.Status {
 }
 
 type ReadResponse struct {
-	Firewall Firewall       `json:"Firewall,omitempty"`
-	Status   FirewallStatus `json:"Status,omitempty"`
+	Firewall Firewall        `json:"Firewall,omitempty"`
+	Status   *FirewallStatus `json:"Status,omitempty"`
 }
 
 type Firewall struct {
