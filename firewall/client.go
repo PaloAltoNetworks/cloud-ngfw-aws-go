@@ -42,10 +42,10 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 }
 
 // Create creates an object.
-func (c *Client) Create(ctx context.Context, input Info) (ReadOutput, error) {
+func (c *Client) Create(ctx context.Context, input Info) (CreateOutput, error) {
 	c.client.Log(http.MethodPost, "create firewall %q", input.Name)
 
-	var ans ReadOutput
+	var ans CreateOutput
 	_, err := c.client.Communicate(
 		ctx,
 		permissions.Firewall,

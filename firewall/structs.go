@@ -63,6 +63,15 @@ type TagDetails struct {
 	Value string `json:"Value"`
 }
 
+type CreateOutput struct {
+	Response Firewall   `json:"Response"`
+	Status   api.Status `json:"ResponseStatus"`
+}
+
+func (o CreateOutput) Failed() *api.Status {
+	return o.Status.Failed()
+}
+
 // V1 read.
 
 type ReadInput struct {
