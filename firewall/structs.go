@@ -2,6 +2,7 @@ package firewall
 
 import (
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/tag"
 )
 
 // V1 list.
@@ -44,7 +45,7 @@ type Info struct {
 	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
 	RuleStackName                string          `json:"RuleStackName,omitempty"`
 	GlobalRuleStackName          string          `json:"GlobalRuleStackName,omitempty"`
-	Tags                         []TagDetails    `json:"Tags,omitempty"`
+	Tags                         []tag.Details   `json:"Tags,omitempty"`
 
 	AssociateSubnetMappings    []SubnetMapping `json:"AssociateSubnetMappings,omitempty"`
 	DisassociateSubnetMappings []SubnetMapping `json:"DisassociateSubnetMappings,omitempty"`
@@ -56,11 +57,6 @@ type SubnetMapping struct {
 	SubnetId           string `json:"SubnetId,omitempty"`
 	AvailabilityZone   string `json:"AvailabilityZone,omitempty"`
 	AvailabilityZoneId string `json:"AvailabilityZoneId,omitempty"`
-}
-
-type TagDetails struct {
-	Key   string `json:"Key"`
-	Value string `json:"Value"`
 }
 
 type CreateOutput struct {
@@ -105,7 +101,7 @@ type Firewall struct {
 	EndpointServiceName          string          `json:"EndpointServiceName,omitempty"`
 	EndpointMode                 string          `json:"EndpointMode,omitempty"`
 	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
-	Tags                         []TagDetails    `json:"Tags,omitempty"`
+	Tags                         []tag.Details   `json:"Tags,omitempty"`
 	UpdateToken                  string          `json:"UpdateToken,omitempty"`
 }
 

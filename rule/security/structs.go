@@ -2,6 +2,7 @@ package security
 
 import (
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/tag"
 )
 
 // V1 list.
@@ -65,7 +66,7 @@ type Details struct {
 	Action             string             `json:"Action,omitempty"`
 	Logging            bool               `json:"Logging,omitempty"`
 	DecryptionRuleType string             `json:"DecryptionRuleType,omitempty"`
-	Tags               []TagDetails       `json:"Tags,omitempty"`
+	Tags               []tag.Details      `json:"Tags,omitempty"`
 	UpdateToken        string             `json:"UpdateToken,omitempty"`
 }
 
@@ -87,11 +88,6 @@ type DestinationDetails struct {
 type CategoryDetails struct {
 	UrlCategoryNames []string `json:"URLCategoryNames,omitempty"`
 	Feeds            []string `json:"Feeds,omitempty"`
-}
-
-type TagDetails struct {
-	Key   string `json:"Key"`
-	Value string `json:"Value"`
 }
 
 // V1 read.

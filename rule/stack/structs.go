@@ -2,6 +2,7 @@ package stack
 
 import (
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/tag"
 )
 
 // V1 list.
@@ -52,7 +53,7 @@ type Details struct {
 
 	UpdateToken string `json:"UpdateToken,omitempty"`
 
-	Tags []string `json:"Tags,omitempty"`
+	Tags []tag.Details `json:"Tags,omitempty"`
 }
 
 type ProfileConfig struct {
