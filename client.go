@@ -183,6 +183,33 @@ func (c *Client) Setup() error {
 		}
 	}
 
+	// LFA ARN.
+	if c.LfaArn == "" {
+		if val := os.Getenv("CLOUD_NGFW_LFA_ARN"); c.CheckEnvironment && val != "" {
+			c.LfaArn = val
+		} else if json_client.LfaArn != "" {
+			c.LfaArn = json_client.LfaArn
+		}
+	}
+
+	// LRA ARN.
+	if c.LraArn == "" {
+		if val := os.Getenv("CLOUD_NGFW_LRA_ARN"); c.CheckEnvironment && val != "" {
+			c.LraArn = val
+		} else if json_client.LraArn != "" {
+			c.LraArn = json_client.LraArn
+		}
+	}
+
+	// ARN.
+	if c.Arn == "" {
+		if val := os.Getenv("CLOUD_NGFW_ARN"); c.CheckEnvironment && val != "" {
+			c.Arn = val
+		} else if json_client.Arn != "" {
+			c.Arn = json_client.Arn
+		}
+	}
+
 	// Verify cert.
 	if !c.SkipVerifyCertificate {
 		if val := os.Getenv("CLOUD_NGFW_SKIP_VERIFY_CERTIFICATE"); c.CheckEnvironment && val != "" {
