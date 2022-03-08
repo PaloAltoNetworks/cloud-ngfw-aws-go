@@ -272,7 +272,7 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 	}
 
 	jwtReq := getJwt{
-		Expires: 90,
+		Expires: 120,
 		KeyInfo: &jwtKeyInfo{
 			Region: c.Region,
 			Tenant: "XY",
@@ -296,23 +296,30 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 	}
 
 	svc := sts.New(sess)
+	results := make(chan error)
 
-	// Get a JWT that works for both firewall and rulestack admins.
-	if c.Arn != "" {
-		return fmt.Errorf("No endpoint yet known for shared ARN JWT retrieval")
-	}
+	go func() {
+		// Get firewall JWT.
+		var rarn *string
+		if c.LfaArn != "" {
+			rarn = aws.String(c.LfaArn)
+		} else if c.Arn != "" {
+			rarn = aws.String(c.Arn)
+		} else {
+			results <- nil
+			return
+		}
 
-	// Get a firewall JWT.
-	if c.LfaArn != "" {
 		if c.Logging&LogLogin == LogLogin {
 			log.Printf("(login) refreshing firewall JWT...")
 		}
 		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-			RoleArn:         aws.String(c.LfaArn),
+			RoleArn:         rarn,
 			RoleSessionName: aws.String("sdk_session"),
 		})
 		if err != nil {
-			return err
+			results <- err
+			return
 		}
 
 		var ans authResponse
@@ -320,23 +327,36 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 			ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials,
 		)
 		if err != nil {
-			return err
+			results <- err
+			return
 		}
 
 		c.FirewallJwt = ans.Resp.Jwt
-	}
+		results <- nil
+	}()
 
-	// Get rulestack JWT.
-	if c.LraArn != "" {
+	go func() {
+		// Get rulestack JWT.
+		var rarn *string
+		if c.LraArn != "" {
+			rarn = aws.String(c.LraArn)
+		} else if c.Arn != "" {
+			rarn = aws.String(c.Arn)
+		} else {
+			results <- nil
+			return
+		}
+
 		if c.Logging&LogLogin == LogLogin {
 			log.Printf("(login) refreshing rulestack JWT...")
 		}
 		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-			RoleArn:         aws.String(c.LraArn),
+			RoleArn:         rarn,
 			RoleSessionName: aws.String("sdk_session"),
 		})
 		if err != nil {
-			return err
+			results <- err
+			return
 		}
 
 		var ans authResponse
@@ -344,10 +364,19 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 			ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudrulestackadmin"}, nil, jwtReq, &ans, result.Credentials,
 		)
 		if err != nil {
-			return err
+			results <- err
+			return
 		}
 
 		c.RulestackJwt = ans.Resp.Jwt
+		results <- nil
+	}()
+
+	e1, e2 := <-results, <-results
+	if e1 != nil {
+		return e1
+	} else if e2 != nil {
+		return e2
 	}
 
 	return nil
