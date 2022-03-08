@@ -89,3 +89,22 @@ type ReadResponse struct {
 	Candidate *Details `json:"RuleStackCandidate"`
 	Running   *Details `json:"RuleStackRunning"`
 }
+
+// V1 commit status.
+
+type CommitStatus struct {
+	Response CommitResponse `json:"Response"`
+	Status   api.Status     `json:"ResponseStatus"`
+}
+
+func (o CommitStatus) Failed() *api.Status {
+	return o.Status.Failed()
+}
+
+type CommitResponse struct {
+	Name               string   `json:"RuleStackName"`
+	CommitStatus       string   `json:"CommitStatus"`
+	ValidationStatus   string   `json:"ValidateStatus"`
+	CommitMessages     []string `json:"CommitMessages"`
+	ValidationMessages []string `json:"ValidateMessages"`
+}

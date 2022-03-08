@@ -109,3 +109,72 @@ func (c *Client) Delete(ctx context.Context, name string) error {
 
 	return err
 }
+
+// Commit commits the rulestack configuration.
+func (c *Client) Commit(ctx context.Context, name string) error {
+	c.client.Log(http.MethodPost, "commit rulestack: %s", name)
+
+	_, err := c.client.Communicate(
+		ctx,
+		permissions.Rulestack,
+		http.MethodPost,
+		[]string{"v1", "config", "rulestacks", name, "commit"},
+		nil,
+		nil,
+		nil,
+	)
+
+	return err
+}
+
+// CommitStatus gets the commit status.
+func (c *Client) CommitStatus(ctx context.Context, name string) (CommitStatus, error) {
+	c.client.Log(http.MethodGet, "commit status for rulestack: %s", name)
+
+	var ans CommitStatus
+	_, err := c.client.Communicate(
+		ctx,
+		permissions.Rulestack,
+		http.MethodGet,
+		[]string{"v1", "config", "rulestacks", name, "commit"},
+		nil,
+		nil,
+		&ans,
+	)
+
+	return ans, err
+}
+
+// Revert reverts to the last good config.
+func (c *Client) Revert(ctx context.Context, name string) error {
+	c.client.Log(http.MethodPost, "revert rulestack: %s", name)
+
+	_, err := c.client.Communicate(
+		ctx,
+		permissions.Rulestack,
+		http.MethodPost,
+		[]string{"v1", "config", "rulestacks", name, "revert"},
+		nil,
+		nil,
+		nil,
+	)
+
+	return err
+}
+
+// Validate validates the rulestack config.
+func (c *Client) Validate(ctx context.Context, name string) error {
+	c.client.Log(http.MethodPost, "validate rulestack: %s", name)
+
+	_, err := c.client.Communicate(
+		ctx,
+		permissions.Rulestack,
+		http.MethodPost,
+		[]string{"v1", "config", "rulestacks", name, "validate"},
+		nil,
+		nil,
+		nil,
+	)
+
+	return err
+}
