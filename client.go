@@ -404,6 +404,8 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 		return e1
 	} else if e2 != nil {
 		return e2
+	} else if c.FirewallJwt == "" && c.RulestackJwt == "" {
+		return fmt.Errorf("No ARNs were specified")
 	}
 
 	return nil
