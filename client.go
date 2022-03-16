@@ -119,7 +119,7 @@ func (c *Client) Setup() error {
 
 	// Host.
 	if c.Host == "" {
-		if val := os.Getenv("CLOUD_NGFW_HOST"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_HOST"); c.CheckEnvironment && val != "" {
 			c.Host = val
 		} else if json_client.Host != "" {
 			c.Host = json_client.Host
@@ -129,9 +129,27 @@ func (c *Client) Setup() error {
 		c.Host = "api.us-east-1.aws.cloudngfw.com"
 	}
 
+	// Access key.
+	if c.AccessKey == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_ACCESS_KEY"); c.CheckEnvironment && val != "" {
+			c.AccessKey = val
+		} else if json_client.AccessKey != "" {
+			c.AccessKey = json_client.AccessKey
+		}
+	}
+
+	// Secret key.
+	if c.SecretKey == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_SECRET_KEY"); c.CheckEnvironment && val != "" {
+			c.SecretKey = val
+		} else if json_client.SecretKey != "" {
+			c.SecretKey = json_client.SecretKey
+		}
+	}
+
 	// Region.
 	if c.Region == "" {
-		if val := os.Getenv("CLOUD_NGFW_REGION"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_REGION"); c.CheckEnvironment && val != "" {
 			c.Region = val
 		} else if json_client.Region != "" {
 			c.Region = json_client.Region
@@ -142,7 +160,7 @@ func (c *Client) Setup() error {
 
 	// Protocol.
 	if c.Protocol == "" {
-		if val := os.Getenv("CLOUD_NGFW_PROTOCOL"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_PROTOCOL"); c.CheckEnvironment && val != "" {
 			c.Protocol = val
 		} else if json_client.Protocol != "" {
 			c.Protocol = json_client.Protocol
@@ -156,7 +174,7 @@ func (c *Client) Setup() error {
 
 	// Timeout.
 	if c.Timeout == 0 {
-		if val := os.Getenv("CLOUD_NGFW_TIMEOUT"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_TIMEOUT"); c.CheckEnvironment && val != "" {
 			if ival, err := strconv.Atoi(val); err != nil {
 				return fmt.Errorf("Failed to parse timeout env var as int: %s", err)
 			} else {
@@ -175,7 +193,7 @@ func (c *Client) Setup() error {
 
 	// Headers.
 	if len(c.Headers) == 0 {
-		if val := os.Getenv("CLOUD_NGFW_HEADERS"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_HEADERS"); c.CheckEnvironment && val != "" {
 			if err := json.Unmarshal([]byte(val), &c.Headers); err != nil {
 				return err
 			}
@@ -190,7 +208,7 @@ func (c *Client) Setup() error {
 
 	// LFA ARN.
 	if c.LfaArn == "" {
-		if val := os.Getenv("CLOUD_NGFW_LFA_ARN"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_LFA_ARN"); c.CheckEnvironment && val != "" {
 			c.LfaArn = val
 		} else if json_client.LfaArn != "" {
 			c.LfaArn = json_client.LfaArn
@@ -199,7 +217,7 @@ func (c *Client) Setup() error {
 
 	// LRA ARN.
 	if c.LraArn == "" {
-		if val := os.Getenv("CLOUD_NGFW_LRA_ARN"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_LRA_ARN"); c.CheckEnvironment && val != "" {
 			c.LraArn = val
 		} else if json_client.LraArn != "" {
 			c.LraArn = json_client.LraArn
@@ -208,7 +226,7 @@ func (c *Client) Setup() error {
 
 	// ARN.
 	if c.Arn == "" {
-		if val := os.Getenv("CLOUD_NGFW_ARN"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_ARN"); c.CheckEnvironment && val != "" {
 			c.Arn = val
 		} else if json_client.Arn != "" {
 			c.Arn = json_client.Arn
@@ -217,7 +235,7 @@ func (c *Client) Setup() error {
 
 	// Verify cert.
 	if !c.SkipVerifyCertificate {
-		if val := os.Getenv("CLOUD_NGFW_SKIP_VERIFY_CERTIFICATE"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_SKIP_VERIFY_CERTIFICATE"); c.CheckEnvironment && val != "" {
 			if vcb, err := strconv.ParseBool(val); err != nil {
 				return err
 			} else if vcb {
@@ -232,7 +250,7 @@ func (c *Client) Setup() error {
 	// Logging.
 	if c.Logging == 0 {
 		var ll []string
-		if val := os.Getenv("CLOUD_NGFW_LOGGING"); c.CheckEnvironment && val != "" {
+		if val := os.Getenv("CLOUDNGFWAWS_LOGGING"); c.CheckEnvironment && val != "" {
 			ll = strings.Split(val, ",")
 		} else {
 			ll = json_client.LoggingFromInitialize
