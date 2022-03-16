@@ -121,17 +121,22 @@ func (c *Client) Setup() error {
 	if c.Host == "" {
 		if val := os.Getenv("CLOUD_NGFW_HOST"); c.CheckEnvironment && val != "" {
 			c.Host = val
-		} else {
+		} else if json_client.Host != "" {
 			c.Host = json_client.Host
 		}
+	}
+	if c.Host == "" {
+		c.Host = "api.us-east-1.aws.cloudngfw.com"
 	}
 
 	// Region.
 	if c.Region == "" {
 		if val := os.Getenv("CLOUD_NGFW_REGION"); c.CheckEnvironment && val != "" {
 			c.Region = val
-		} else {
+		} else if json_client.Region != "" {
 			c.Region = json_client.Region
+		} else {
+			return fmt.Errorf("No region was specified")
 		}
 	}
 
@@ -276,13 +281,6 @@ func (c *Client) Setup() error {
 	c.HttpClient = &http.Client{
 		Transport: c.Transport,
 		Timeout:   tout,
-	}
-
-	// Sanity checks.
-	if c.Region == "" {
-		return fmt.Errorf("No region specified")
-	} else if c.Host == "" {
-		return fmt.Errorf("No host specified")
 	}
 
 	// Configure the uri prefix.
