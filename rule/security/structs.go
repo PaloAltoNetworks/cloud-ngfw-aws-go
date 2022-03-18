@@ -54,17 +54,17 @@ type Info struct {
 type Details struct {
 	Name               string             `json:"RuleName,omitempty"`
 	Description        string             `json:"Description,omitempty"`
-	Enabled            bool               `json:"Enabled,omitempty"`
+	Enabled            bool               `json:"Enabled"`
 	Source             SourceDetails      `json:"Source"`
-	NegateSource       bool               `json:"NegateSource,omitempty"`
+	NegateSource       bool               `json:"NegateSource"`
 	Destination        DestinationDetails `json:"Destination"`
-	NegateDestination  bool               `json:"NegateDestination,omitempty"`
+	NegateDestination  bool               `json:"NegateDestination"`
 	Applications       []string           `json:"Applications"`
 	Category           CategoryDetails    `json:"Category"`
 	Protocol           string             `json:"Protocol,omitempty"`
 	AuditComment       string             `json:"AuditComment,omitempty"`
 	Action             string             `json:"Action,omitempty"`
-	Logging            bool               `json:"Logging,omitempty"`
+	Logging            bool               `json:"Logging"`
 	DecryptionRuleType string             `json:"DecryptionRuleType,omitempty"`
 	Tags               []tag.Details      `json:"Tags,omitempty"`
 	UpdateToken        string             `json:"UpdateToken,omitempty"`
