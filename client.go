@@ -37,6 +37,7 @@ type Client struct {
 
 	LfaArn string `json:"lfa-arn"`
 	LraArn string `json:"lra-arn"`
+	GraArn string `json:"gra-arn"`
 	Arn    string `json:"arn"`
 
 	AuthFile         string `json:"auth-file"`
@@ -50,8 +51,12 @@ type Client struct {
 	LoggingFromInitialize []string `json:"logging"`
 
 	// Configured by Initialize().
-	FirewallJwt  string `json:"-"`
-	RulestackJwt string `json:"-"`
+	FirewallJwt                    string `json:"-"`
+	FirewallSubscriptionKey        string `json:"-"`
+	RulestackJwt                   string `json:"-"`
+	RulestackSubscriptionKey       string `json:"-"`
+	GlobalRulestackJwt             string `json:"-"`
+	GlobalRulestackSubscriptionKey string `json:"-"`
 
 	// Internal variables.
 	apiPrefix string
@@ -224,6 +229,15 @@ func (c *Client) Setup() error {
 		}
 	}
 
+	// GRA ARN.
+	if c.GraArn == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_GRA_ARN"); c.CheckEnvironment && val != "" {
+			c.GraArn = val
+		} else if json_client.GraArn != "" {
+			c.GraArn = json_client.GraArn
+		}
+	}
+
 	// ARN.
 	if c.Arn == "" {
 		if val := os.Getenv("CLOUDNGFWAWS_ARN"); c.CheckEnvironment && val != "" {
@@ -316,10 +330,12 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 
 	jwtReq := getJwt{
 		Expires: 120,
-		KeyInfo: &jwtKeyInfo{
-			Region: c.Region,
-			Tenant: "XY",
-		},
+		/*
+			KeyInfo: &jwtKeyInfo{
+				Region: c.Region,
+				Tenant: "XY",
+			},
+		*/
 	}
 
 	var creds *credentials.Credentials
@@ -375,6 +391,7 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 		}
 
 		c.FirewallJwt = ans.Resp.Jwt
+		c.FirewallSubscriptionKey = ans.Resp.SubscriptionKey
 		results <- nil
 	}()
 
@@ -412,14 +429,59 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 		}
 
 		c.RulestackJwt = ans.Resp.Jwt
+		c.RulestackSubscriptionKey = ans.Resp.SubscriptionKey
 		results <- nil
 	}()
 
-	e1, e2 := <-results, <-results
+	go func() {
+		// Skip global rulestack JWT retrieval for now.
+		results <- nil
+		return
+
+		// Get global rulestack JWT.
+		var rarn *string
+		if c.GraArn != "" {
+			rarn = aws.String(c.GraArn)
+		} else if c.Arn != "" {
+			rarn = aws.String(c.Arn)
+		} else {
+			results <- nil
+			return
+		}
+
+		if c.Logging&LogLogin == LogLogin {
+			log.Printf("(login) refreshing rulestack JWT...")
+		}
+		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
+			RoleArn:         rarn,
+			RoleSessionName: aws.String("sdk_session"),
+		})
+		if err != nil {
+			results <- err
+			return
+		}
+
+		var ans authResponse
+		_, err = c.Communicate(
+			ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudglobalrulestackadmin"}, nil, jwtReq, &ans, result.Credentials,
+		)
+		if err != nil {
+			results <- err
+			return
+		}
+
+		c.GlobalRulestackJwt = ans.Resp.Jwt
+		c.GlobalRulestackSubscriptionKey = ans.Resp.SubscriptionKey
+		results <- nil
+	}()
+
+	e1, e2, e3 := <-results, <-results, <-results
 	if e1 != nil {
 		return e1
 	} else if e2 != nil {
 		return e2
+	} else if e3 != nil {
+		return e3
 	} else if c.FirewallJwt == "" && c.RulestackJwt == "" {
 		return fmt.Errorf("No ARNs were specified")
 	}
@@ -503,8 +565,10 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		case "":
 		case permissions.Firewall:
 			req.Header.Set("Authorization", c.FirewallJwt)
+			req.Header.Set("x-api-key", c.FirewallSubscriptionKey)
 		case permissions.Rulestack:
 			req.Header.Set("Authorization", c.RulestackJwt)
+			req.Header.Set("x-api-key", c.RulestackSubscriptionKey)
 		default:
 			return nil, fmt.Errorf("Unknown auth type: %q", auth)
 		}
