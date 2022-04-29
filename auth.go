@@ -20,10 +20,10 @@ type authResponse struct {
 }
 
 type authData struct {
-	Jwt            string  `json:"TokenId"`
-	SubscriptionId string  `json:"SubscriptionKey"`
-	ExpiryTime     float64 `json:"ExpiryTime"`
-	Enabled        bool    `json:"Enabled"`
+	Jwt             string  `json:"TokenId"`
+	SubscriptionKey string  `json:"SubscriptionKey"`
+	ExpiryTime      float64 `json:"ExpiryTime"`
+	Enabled         bool    `json:"Enabled"`
 }
 
 func (o authResponse) Failed() *api.Status {
