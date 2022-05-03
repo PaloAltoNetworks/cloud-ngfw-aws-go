@@ -67,7 +67,7 @@ func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) 
 	var ans ReadOutput
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		permissions.Firewall,
 		http.MethodGet,
 		[]string{"v1", "config", "ngfirewalls", name},
 		nil,
