@@ -11,7 +11,7 @@ type jwtKeyInfo struct {
 
 type getJwt struct {
 	Expires int         `json:"ExpiryTime"`
-	KeyInfo *jwtKeyInfo `json:"KeyInfo"`
+	KeyInfo *jwtKeyInfo `json:"KeyInfo,omitempty"`
 }
 
 type authResponse struct {
