@@ -2,7 +2,6 @@ package stack
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -24,7 +23,7 @@ func NewClient(client api.Client) *Client {
 
 // List returns a list of objects.
 func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return ListOutput{}, permErr
 	}
@@ -84,7 +83,7 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 
 // Create creates an object.
 func (c *Client) Create(ctx context.Context, input Info) error {
-	perm, permErr := selectPermissions(input.Entry.Scope)
+	perm, permErr := permissions.Choose(input.Entry.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -106,7 +105,7 @@ func (c *Client) Create(ctx context.Context, input Info) error {
 
 // Read returns information on the given object.
 func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return ReadOutput{}, permErr
 	}
@@ -140,7 +139,7 @@ func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) 
 
 // Update updates the given object.
 func (c *Client) Update(ctx context.Context, input Info) error {
-	perm, permErr := selectPermissions(input.Entry.Scope)
+	perm, permErr := permissions.Choose(input.Entry.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -165,7 +164,7 @@ func (c *Client) Update(ctx context.Context, input Info) error {
 
 // Delete removes the given object from the config.
 func (c *Client) Delete(ctx context.Context, input SimpleInput) error {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -187,7 +186,7 @@ func (c *Client) Delete(ctx context.Context, input SimpleInput) error {
 
 // Commit commits the rulestack configuration.
 func (c *Client) Commit(ctx context.Context, input SimpleInput) error {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -209,7 +208,7 @@ func (c *Client) Commit(ctx context.Context, input SimpleInput) error {
 
 // CommitStatus gets the commit status.
 func (c *Client) CommitStatus(ctx context.Context, input SimpleInput) (CommitStatus, error) {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return CommitStatus{}, permErr
 	}
@@ -232,7 +231,7 @@ func (c *Client) CommitStatus(ctx context.Context, input SimpleInput) (CommitSta
 
 // Revert reverts to the last good config.
 func (c *Client) Revert(ctx context.Context, input SimpleInput) error {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -254,7 +253,7 @@ func (c *Client) Revert(ctx context.Context, input SimpleInput) error {
 
 // Validate validates the rulestack config.
 func (c *Client) Validate(ctx context.Context, input SimpleInput) error {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -276,7 +275,7 @@ func (c *Client) Validate(ctx context.Context, input SimpleInput) error {
 
 // ListTags returns the list of tags for this rulestack.
 func (c *Client) ListTags(ctx context.Context, input ListTagsInput) (ListTagsOutput, error) {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return ListTagsOutput{}, permErr
 	}
@@ -310,7 +309,7 @@ func (c *Client) ListTags(ctx context.Context, input ListTagsInput) (ListTagsOut
 
 // AddTags adds tags to the specified rulestack.
 func (c *Client) AddTags(ctx context.Context, input AddTagsInput) error {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -332,7 +331,7 @@ func (c *Client) AddTags(ctx context.Context, input AddTagsInput) error {
 
 // RemoveTags removes the given tags from the resource.
 func (c *Client) RemoveTags(ctx context.Context, input RemoveTagsInput) error {
-	perm, permErr := selectPermissions(input.Scope)
+	perm, permErr := permissions.Choose(input.Scope)
 	if permErr != nil {
 		return permErr
 	}
@@ -427,15 +426,4 @@ func (c *Client) ApplyTags(ctx context.Context, input AddTagsInput) error {
 
 	// Done.
 	return nil
-}
-
-func selectPermissions(v string) (string, error) {
-	switch v {
-	case "", "Local":
-		return permissions.Rulestack, nil
-	case "Global":
-		return permissions.GlobalRulestack, nil
-	}
-
-	return "", fmt.Errorf("Unknown permission: %s", v)
 }
