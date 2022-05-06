@@ -30,13 +30,19 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 		c.client.Log(http.MethodGet, "list NGFirewalls in %q VPCs", strings.Join(input.VpcIds, ","))
 	}
 
+	var uv url.Values
+	if input.Rulestack != "" {
+		uv = url.Values{}
+		uv.Set("rulestackname", input.Rulestack)
+	}
+
 	var ans ListOutput
 	_, err := c.client.Communicate(
 		ctx,
 		permissions.Firewall,
 		http.MethodGet,
 		[]string{"v1", "config", "ngfirewalls"},
-		nil,
+		uv,
 		input,
 		&ans,
 	)
