@@ -8,6 +8,7 @@ import (
 // V1 list.
 
 type ListInput struct {
+	Rulestack  string   `json:"-"`
 	MaxResults int      `json:"MaxResults,omitempty"`
 	NextToken  string   `json:"NextToken,omitempty"`
 	VpcIds     []string `json:"VpcIds,omitempty"`
