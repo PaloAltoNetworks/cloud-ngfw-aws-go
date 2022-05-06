@@ -10,6 +10,7 @@ import (
 type ListInput struct {
 	Rulestack   string `json:"-"`
 	RuleList    string `json:"-"`
+	Scope       string `json:"-"`
 	NextToken   string `json:"NextToken,omitempty"`
 	Candidate   bool   `json:"Candidate,omitempty"`
 	Running     bool   `json:"Running,omitempty"`
@@ -46,6 +47,7 @@ type ListEntryCandidate struct {
 
 type Info struct {
 	Rulestack string  `json:"RuleStackName,omitempty"`
+	Scope     string  `json:"-"`
 	RuleList  string  `json:"RuleListName,omitempty"`
 	Priority  int     `json:"Priority,omitempty"`
 	Entry     Details `json:"RuleEntry"`
@@ -93,6 +95,7 @@ type CategoryDetails struct {
 // V1 read.
 
 type ReadInput struct {
+	Scope     string `json:"-"`
 	Rulestack string `json:"-"`
 	RuleList  string `json:"-"`
 	Priority  int    `json:"-"`
@@ -115,4 +118,13 @@ type ReadResponse struct {
 	Priority  int      `json:"Priority"`
 	Running   *Details `json:"RuleEntryRunning"`
 	Candidate *Details `json:"RuleEntryCandidate"`
+}
+
+// V1 delete.
+
+type DeleteInput struct {
+	Rulestack string
+	RuleList  string
+	Priority  int
+	Scope     string
 }

@@ -21,13 +21,18 @@ func NewClient(client api.Client) *Client {
 
 // List returns a list of objects.
 func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return ListOutput{}, permErr
+	}
+
 	stack, rlist := input.Rulestack, input.RuleList
 	c.client.Log(http.MethodGet, "list %s %q security rules", rlist, stack)
 
 	var ans ListOutput
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodGet,
 		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist},
 		nil,
@@ -40,6 +45,11 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 
 // Create creates an object.
 func (c *Client) Create(ctx context.Context, input Info) error {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return permErr
+	}
+
 	stack, rlist := input.Rulestack, input.RuleList
 	input.Rulestack, input.RuleList = "", ""
 
@@ -47,7 +57,7 @@ func (c *Client) Create(ctx context.Context, input Info) error {
 
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodPost,
 		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist},
 		nil,
@@ -60,6 +70,11 @@ func (c *Client) Create(ctx context.Context, input Info) error {
 
 // Read returns information on the given object.
 func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return ReadOutput{}, permErr
+	}
+
 	stack, rlist, priority := input.Rulestack, input.RuleList, input.Priority
 
 	c.client.Log(http.MethodGet, "describe %s security rule in %q: %d", rlist, stack, priority)
@@ -67,7 +82,7 @@ func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) 
 	var ans ReadOutput
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodGet,
 		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
 		nil,
@@ -80,6 +95,11 @@ func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) 
 
 // Update updates the given object.
 func (c *Client) Update(ctx context.Context, input Info) error {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return permErr
+	}
+
 	stack, rlist, priority := input.Rulestack, input.RuleList, input.Priority
 	input.Rulestack, input.RuleList, input.Priority = "", "", 0
 
@@ -87,7 +107,7 @@ func (c *Client) Update(ctx context.Context, input Info) error {
 
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodPut,
 		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
 		nil,
@@ -99,14 +119,19 @@ func (c *Client) Update(ctx context.Context, input Info) error {
 }
 
 // Delete removes the given object from the config.
-func (c *Client) Delete(ctx context.Context, stack, rlist string, priority int) error {
-	c.client.Log(http.MethodDelete, "delete %s security rule in %q: priority %d", rlist, stack, priority)
+func (c *Client) Delete(ctx context.Context, input DeleteInput) error {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return permErr
+	}
+
+	c.client.Log(http.MethodDelete, "delete %s security rule in %q: priority %d", input.RuleList, input.Rulestack, input.Priority)
 
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
+		[]string{"v1", "config", "rulestacks", input.Rulestack, "rulelists", input.RuleList, "priorities", strconv.Itoa(input.Priority)},
 		nil,
 		nil,
 		nil,
