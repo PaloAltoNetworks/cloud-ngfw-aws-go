@@ -14,8 +14,8 @@ type ListInput struct {
 }
 
 type ListOutput struct {
-	Response *ListOutputDetails `json:"Response"`
-	Status   api.Status         `json:"ResponseStatus"`
+	Response ListOutputDetails `json:"Response"`
+	Status   api.Status        `json:"ResponseStatus"`
 }
 
 func (o ListOutput) Failed() *api.Status {
@@ -32,25 +32,22 @@ type ListFirewall struct {
 	AccountId string `json:"AccountId"`
 }
 
-// V1 create / update.
+// V1 create.
 
 type Info struct {
 	Name                         string          `json:"FirewallName,omitempty"`
-	VpcId                        string          `json:"VpcId,omitempty"`
 	AccountId                    string          `json:"AccountId,omitempty"`
-	Description                  string          `json:"Description,omitempty"`
-	EndpointMode                 string          `json:"EndpointMode,omitempty"`
-	SubnetMappings               []SubnetMapping `json:"SubnetMappings,omitempty"`
+	VpcId                        string          `json:"VpcId,omitempty"`
 	AppIdVersion                 string          `json:"AppIdVersion,omitempty"`
+	Description                  string          `json:"Description,omitempty"`
+	Rulestack                    string          `json:"RuleStackName,omitempty"`
+	GlobalRulestack              string          `json:"GlobalRuleStackName,omitempty"`
+	EndpointMode                 string          `json:"EndpointMode,omitempty"`
+	EndpointServiceName          string          `json:"EndpointServiceName,omitempty"`
 	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
-	RuleStackName                string          `json:"RuleStackName,omitempty"`
-	GlobalRuleStackName          string          `json:"GlobalRuleStackName,omitempty"`
+	SubnetMappings               []SubnetMapping `json:"SubnetMappings,omitempty"`
 	Tags                         []tag.Details   `json:"Tags,omitempty"`
-
-	AssociateSubnetMappings    []SubnetMapping `json:"AssociateSubnetMappings,omitempty"`
-	DisassociateSubnetMappings []SubnetMapping `json:"DisassociateSubnetMappings,omitempty"`
-
-	UpdateToken string `json:"UpdateToken,omitempty"`
+	UpdateToken                  string          `json:"UpdateToken,omitempty"`
 }
 
 type SubnetMapping struct {
@@ -60,12 +57,66 @@ type SubnetMapping struct {
 }
 
 type CreateOutput struct {
-	Response Firewall   `json:"Response"`
+	Response Info       `json:"Response"`
 	Status   api.Status `json:"ResponseStatus"`
 }
 
 func (o CreateOutput) Failed() *api.Status {
 	return o.Status.Failed()
+}
+
+// V1 update description.
+
+type UpdateDescriptionInput struct {
+	Firewall    string `json:"-"`
+	AccountId   string `json:"AccountId,omitempty"`
+	Description string `json:"Description,omitempty"`
+	UpdateToken string `json:"UpdateToken,omitempty"`
+}
+
+// V1 update subnet mappings.
+
+type UpdateSubnetMappingsInput struct {
+	Firewall                   string          `json:"-"`
+	AccountId                  string          `json:"AccountId,omitempty"`
+	AssociateSubnetMappings    []SubnetMapping `json:"AssociateSubnetMappings,omitempty"`
+	DisassociateSubnetMappings []SubnetMapping `json:"DisassociateSubnetMappings,omitempty"`
+	UpdateToken                string          `json:"UpdateToken,omitempty"`
+}
+
+// V1 update content version.
+
+type UpdateContentVersionInput struct {
+	Firewall                     string `json:"-"`
+	AccountId                    string `json:"AccountId,omitempty"`
+	AppIdVersion                 string `json:"AppIdVersion,omitempty"`
+	AutomaticUpgradeAppIdVersion bool   `json:"AutomaticUpgradeAppIdVersion,omitempty"`
+	UpdateToken                  string `json:"UpdateToken,omitempty"`
+}
+
+// V1 update rulestack.
+
+type UpdateRulestackInput struct {
+	Firewall    string `json:"-"`
+	AccountId   string `json:"AccountId"`
+	Rulestack   string `json:"RuleStackName"`
+	UpdateToken string `json:"UpdateToken,omitempty"`
+}
+
+// V1 remove tags.
+
+type RemoveTagsInput struct {
+	Firewall  string   `json:"-"`
+	AccountId string   `json:"AccountId"`
+	Tags      []string `json:"TagKeys"`
+}
+
+// V1 add tags.
+
+type AddTagsInput struct {
+	Firewall  string        `json:"-"`
+	AccountId string        `json:"AccountId"`
+	Tags      []tag.Details `json:"Tags"`
 }
 
 // V1 read.
@@ -76,8 +127,8 @@ type ReadInput struct {
 }
 
 type ReadOutput struct {
-	Response *ReadResponse `json:"Response"`
-	Status   api.Status    `json:"ResponseStatus"`
+	Response ReadResponse `json:"Response"`
+	Status   api.Status   `json:"ResponseStatus"`
 }
 
 func (o ReadOutput) Failed() *api.Status {
@@ -85,30 +136,14 @@ func (o ReadOutput) Failed() *api.Status {
 }
 
 type ReadResponse struct {
-	Firewall Firewall        `json:"Firewall,omitempty"`
-	Status   *FirewallStatus `json:"Status,omitempty"`
-}
-
-type Firewall struct {
-	Name                         string          `json:"FirewallName,omitempty"`
-	AccountId                    string          `json:"AccountId,omitempty"`
-	SubnetMappings               []SubnetMapping `json:"SubnetMappings,omitempty"`
-	VpcId                        string          `json:"VpcId,omitempty"`
-	AppIdVersion                 string          `json:"AppIdVersion,omitempty"`
-	Description                  string          `json:"Description,omitempty"`
-	RuleStackName                string          `json:"RuleStackName,omitempty"`
-	GlobalRuleStackName          string          `json:"GlobalRuleStackName,omitempty"`
-	EndpointServiceName          string          `json:"EndpointServiceName,omitempty"`
-	EndpointMode                 string          `json:"EndpointMode,omitempty"`
-	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
-	Tags                         []tag.Details   `json:"Tags,omitempty"`
-	UpdateToken                  string          `json:"UpdateToken,omitempty"`
+	Firewall Info           `json:"Firewall"`
+	Status   FirewallStatus `json:"Status,omitempty"`
 }
 
 type FirewallStatus struct {
 	FirewallStatus  string       `json:"FirewallStatus,omitempty"`
 	FailureReason   string       `json:"FailureReason,omitempty"`
-	RuleStackStatus string       `json:"RuleStackStatus,omitempty"`
+	RulestackStatus string       `json:"RuleStackStatus,omitempty"`
 	Attachments     []Attachment `json:"Attachments,omitempty"`
 }
 
@@ -117,4 +152,35 @@ type Attachment struct {
 	Status         string `json:"Status,omitempty"`
 	RejectedReason string `json:"RejectedReason,omitempty"`
 	SubnetId       string `json:"SubnetId,omitempty"`
+}
+
+// V1 delete.
+
+type DeleteInput struct {
+	Name      string `json:"-"`
+	AccountId string `json:"AccountId,omitempty"`
+}
+
+// V1 list tags.
+
+type ListTagsInput struct {
+	Firewall   string
+	AccountId  string
+	NextToken  string
+	MaxResults int
+}
+
+type ListTagsOutput struct {
+	Response ListTagsOutputDetails `json:"Response"`
+	Status   api.Status            `json:"ResponseStatus"`
+}
+
+func (o ListTagsOutput) Failed() *api.Status {
+	return o.Status.Failed()
+}
+
+type ListTagsOutputDetails struct {
+	Firewall  string        `json:"ResourceName"`
+	NextToken string        `json:"NextToken"`
+	Tags      []tag.Details `json:"Tags"`
 }
