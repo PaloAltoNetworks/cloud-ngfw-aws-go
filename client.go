@@ -78,23 +78,27 @@ func (c *Client) Log(method, msg string, i ...interface{}) {
 		if c.Logging&LogGet != LogGet {
 			return
 		}
+	case http.MethodPatch:
+		if c.Logging&LogPatch != LogPatch && c.Logging&LogAction != LogAction {
+			return
+		}
 	case http.MethodPost:
-		if c.Logging&LogPost != LogPost {
+		if c.Logging&LogPost != LogPost && c.Logging&LogAction != LogAction {
 			return
 		}
 	case http.MethodPut:
-		if c.Logging&LogPut != LogPut {
+		if c.Logging&LogPut != LogPut && c.Logging&LogAction != LogAction {
 			return
 		}
 	case http.MethodDelete:
-		if c.Logging&LogDelete != LogDelete {
+		if c.Logging&LogDelete != LogDelete && c.Logging&LogAction != LogAction {
 			return
 		}
 	default:
 		return
 	}
 
-	log.Printf("(%s) %s", method, fmt.Sprintf(msg, i...))
+	log.Printf("(%s) %s", strings.ToLower(method), fmt.Sprintf(msg, i...))
 }
 
 // Setup configures the HttpClient param according to the combination of
@@ -279,12 +283,16 @@ func (c *Client) Setup() error {
 					lv |= LogLogin
 				case "get":
 					lv |= LogGet
+				case "patch":
+					lv |= LogPatch
 				case "post":
 					lv |= LogPost
 				case "put":
 					lv |= LogPut
 				case "delete":
 					lv |= LogDelete
+				case "action":
+					lv |= LogPatch | LogPost | LogPut | LogDelete
 				case "path":
 					lv |= LogPath
 				case "send":
@@ -297,7 +305,7 @@ func (c *Client) Setup() error {
 			}
 			c.Logging = lv
 		} else {
-			c.Logging = LogLogin | LogGet | LogPost | LogPut | LogDelete
+			c.Logging = LogLogin | LogGet | LogAction
 		}
 	}
 
@@ -317,7 +325,6 @@ func (c *Client) Setup() error {
 
 	// Configure the uri prefix.
 	c.apiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.Host)
-	//c.apiPrefix = fmt.Sprintf("%s://api.%s.aws.awsngfw.com", c.Protocol, c.Region)
 
 	return nil
 }
@@ -434,10 +441,6 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 	}()
 
 	go func() {
-		// Skip global rulestack JWT retrieval for now.
-		results <- nil
-		return
-
 		// Get global rulestack JWT.
 		var rarn *string
 		if c.GraArn != "" {
@@ -450,7 +453,7 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 		}
 
 		if c.Logging&LogLogin == LogLogin {
-			log.Printf("(login) refreshing rulestack JWT...")
+			log.Printf("(login) refreshing global rulestack JWT...")
 		}
 		result, err := svc.AssumeRole(&sts.AssumeRoleInput{
 			RoleArn:         rarn,
@@ -482,7 +485,7 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 		return e2
 	} else if e3 != nil {
 		return e3
-	} else if c.FirewallJwt == "" && c.RulestackJwt == "" {
+	} else if c.FirewallJwt == "" && c.RulestackJwt == "" && c.GlobalRulestackJwt == "" {
 		return fmt.Errorf("No ARNs were specified")
 	}
 
@@ -536,73 +539,87 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		log.Printf("sending: %s", data)
 	}
 
-	if len(c.testData) > 0 {
-		// Testing.
-		body = []byte(`{"test"}`)
-	} else {
-		// Create the API request.
-		var qp string
-		if len(queryParams) > 0 {
-			qp = fmt.Sprintf("?%s", queryParams.Encode())
+	// Create the API request.
+	var qp string
+	if len(queryParams) > 0 {
+		qp = fmt.Sprintf("?%s", queryParams.Encode())
+	}
+	if c.Logging&LogPath == LogPath {
+		log.Printf("path: %s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp)
+	}
+	req, err := http.NewRequestWithContext(
+		ctx,
+		method,
+		fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
+		strings.NewReader(string(data)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add in the custom headers.
+	for k, v := range c.Headers {
+		req.Header.Set(k, v)
+	}
+
+	// Configure standard headers.
+	permErr := "This connection does not have the required JWT: %s"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", c.Agent)
+	switch auth {
+	case "":
+	case permissions.Firewall:
+		if c.FirewallJwt == "" {
+			return nil, fmt.Errorf(permErr, permissions.Firewall)
 		}
-		if c.Logging&LogPath == LogPath {
-			log.Printf("path: %s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp)
+		req.Header.Set("Authorization", c.FirewallJwt)
+		req.Header.Set("x-api-key", c.FirewallSubscriptionKey)
+	case permissions.Rulestack:
+		if c.RulestackJwt == "" {
+			return nil, fmt.Errorf(permErr, permissions.Rulestack)
 		}
-		req, err := http.NewRequestWithContext(
-			ctx,
-			method,
-			fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
-			strings.NewReader(string(data)),
-		)
+		req.Header.Set("Authorization", c.RulestackJwt)
+		req.Header.Set("x-api-key", c.RulestackSubscriptionKey)
+	case permissions.GlobalRulestack:
+		if c.GlobalRulestackJwt == "" {
+			return nil, fmt.Errorf(permErr, permissions.GlobalRulestack)
+		}
+		req.Header.Set("Authorization", c.GlobalRulestackJwt)
+		req.Header.Set("x-api-key", c.GlobalRulestackSubscriptionKey)
+	default:
+		return nil, fmt.Errorf("Unknown permission required: %q", auth)
+	}
+
+	// Optional: v4 sign the request.
+	if len(creds) == 1 {
+		prov := provider{
+			Value: credentials.Value{
+				AccessKeyID:     *creds[0].AccessKeyId,
+				SecretAccessKey: *creds[0].SecretAccessKey,
+				SessionToken:    *creds[0].SessionToken,
+			},
+		}
+		signer := v4.NewSigner(credentials.NewCredentials(prov))
+		_, err = signer.Sign(req, strings.NewReader(string(data)), "execute-api", c.Region, time.Now())
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		// Configure headers.
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", c.Agent)
-		switch auth {
-		case "":
-		case permissions.Firewall:
-			req.Header.Set("Authorization", c.FirewallJwt)
-			req.Header.Set("x-api-key", c.FirewallSubscriptionKey)
-		case permissions.Rulestack:
-			req.Header.Set("Authorization", c.RulestackJwt)
-			req.Header.Set("x-api-key", c.RulestackSubscriptionKey)
-		default:
-			return nil, fmt.Errorf("Unknown auth type: %q", auth)
-		}
-		// Add in the custom headers.
-		for k, v := range c.Headers {
-			req.Header.Set(k, v)
-		}
-
-		// Optional: v4 sign the request.
-		if len(creds) == 1 {
-			prov := provider{
-				Value: credentials.Value{
-					AccessKeyID:     *creds[0].AccessKeyId,
-					SecretAccessKey: *creds[0].SecretAccessKey,
-					SessionToken:    *creds[0].SessionToken,
-				},
-			}
-			signer := v4.NewSigner(credentials.NewCredentials(prov))
-			_, err = signer.Sign(req, strings.NewReader(string(data)), "execute-api", c.Region, time.Now())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Perform the API action.
+	// Perform the API action.
+	if len(c.testData) > 0 {
+		body = []byte(`{"test"}`)
+	} else {
 		resp, err := c.HttpClient.Do(req)
 		if err != nil {
 			return nil, err
 		}
 		defer resp.Body.Close()
 		body, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Log the response.
