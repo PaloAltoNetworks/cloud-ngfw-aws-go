@@ -8,6 +8,7 @@ import (
 
 type ListInput struct {
 	Rulestack   string `json:"-"`
+	Scope       string `json:"-"`
 	Candidate   bool   `json:"Candidate,omitempty"`
 	Running     bool   `json:"Running,omitempty"`
 	Uncommitted bool   `json:"Uncommitted,omitempty"`
@@ -40,6 +41,7 @@ type ListUncommitted struct {
 
 type Info struct {
 	Rulestack    string   `json:"-"`
+	Scope        string   `json:"-"`
 	Name         string   `json:"Name,omitempty"`
 	Description  string   `json:"Description,omitempty"`
 	FqdnList     []string `json:"FqdnList,omitempty"`
@@ -51,6 +53,7 @@ type Info struct {
 
 type ReadInput struct {
 	Rulestack string `json:"-"`
+	Scope     string `json:"-"`
 	Name      string `json:"-"`
 	Candidate bool   `json:"Candidate,omitempty"`
 	Running   bool   `json:"Running,omitempty"`
@@ -70,4 +73,12 @@ type ReadResponse struct {
 	Name      string `json:"Name"`
 	Candidate *Info  `json:"FqdnListCandidate"`
 	Running   *Info  `json:"FqdnListRunning"`
+}
+
+// V1 delete.
+
+type DeleteInput struct {
+	Rulestack string
+	Scope     string
+	Name      string
 }
