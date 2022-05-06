@@ -6,8 +6,10 @@ const (
 	LogLogin
 	LogGet
 	LogPost
+	LogPatch
 	LogPut
 	LogDelete
+	LogAction
 	LogPath
 	LogSend
 	LogReceive
