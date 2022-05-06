@@ -8,11 +8,15 @@ import (
 // V1 list.
 
 type ListInput struct {
-	Scope       string `json:"Scope,omitempty"`
-	Candidate   bool   `json:"Candidate,omitempty"`
-	Running     bool   `json:"Running,omitempty"`
-	Uncommitted bool   `json:"Uncommitted,omitempty"`
-	MaxResults  int    `json:"MaxResults,omitempty"`
+	Scope       string
+	TagKey      string
+	TagValue    string
+	Candidate   bool
+	Running     bool
+	Uncommitted bool
+	Describe    bool
+	NextToken   string
+	MaxResults  int
 }
 
 type ListOutput struct {
@@ -70,9 +74,10 @@ type ProfileConfig struct {
 // V1 read.
 
 type ReadInput struct {
-	Name      string `json:"-"`
-	Candidate bool   `json:"Candidate,omitempty"`
-	Running   bool   `json:"Running,omitempty"`
+	Name      string
+	Scope     string
+	Candidate bool
+	Running   bool
 }
 
 type ReadOutput struct {
@@ -108,4 +113,49 @@ type CommitResponse struct {
 	ValidationStatus   string   `json:"ValidateStatus"`
 	CommitMessages     []string `json:"CommitMessages"`
 	ValidationMessages []string `json:"ValidateMessages"`
+}
+
+// V1 list tags.
+
+type ListTagsInput struct {
+	Rulestack  string
+	Scope      string
+	NextToken  string
+	MaxResults int
+}
+
+type ListTagsOutput struct {
+	Response ListTagsOutputDetails `json:"Response"`
+	Status   api.Status            `json:"ResponseStatus"`
+}
+
+func (o ListTagsOutput) Failed() *api.Status {
+	return o.Status.Failed()
+}
+
+type ListTagsOutputDetails struct {
+	Rulestack string        `json:"ResourceName"`
+	NextToken string        `json:"NextToken"`
+	Tags      []tag.Details `json:"Tags"`
+}
+
+// V1 create.
+
+type AddTagsInput struct {
+	Rulestack string        `json:"-"`
+	Scope     string        `json:"-"`
+	Tags      []tag.Details `json:"Tags,omitempty"`
+}
+
+type RemoveTagsInput struct {
+	Rulestack string   `json:"-"`
+	Scope     string   `json:"-"`
+	Tags      []string `json:"TagKeys"`
+}
+
+// V1 delete.
+
+type SimpleInput struct {
+	Name  string
+	Scope string
 }
