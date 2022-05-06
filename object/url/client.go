@@ -20,12 +20,17 @@ func NewClient(client api.Client) *Client {
 
 // List returns a list of objects.
 func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return ListOutput{}, permErr
+	}
+
 	c.client.Log(http.MethodGet, "list rulestack %q custom url categories", input.Rulestack)
 
 	var ans ListOutput
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodGet,
 		[]string{"v1", "config", "rulestacks", input.Rulestack, "urlcustomcategories"},
 		nil,
@@ -38,11 +43,16 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 
 // Create creates an object.
 func (c *Client) Create(ctx context.Context, input Info) error {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return permErr
+	}
+
 	c.client.Log(http.MethodPost, "create rulestack %q custom url category: %s", input.Rulestack, input.Name)
 
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodPost,
 		[]string{"v1", "config", "rulestacks", input.Rulestack, "urlcustomcategories"},
 		nil,
@@ -55,12 +65,17 @@ func (c *Client) Create(ctx context.Context, input Info) error {
 
 // Read returns information on the given object.
 func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return ReadOutput{}, permErr
+	}
+
 	c.client.Log(http.MethodGet, "describe rulestack %q custom url category: %s", input.Rulestack, input.Name)
 
 	var ans ReadOutput
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodGet,
 		[]string{"v1", "config", "rulestacks", input.Rulestack, "urlcustomcategories", input.Name},
 		nil,
@@ -73,6 +88,11 @@ func (c *Client) Read(ctx context.Context, input ReadInput) (ReadOutput, error) 
 
 // Update updates the given object.
 func (c *Client) Update(ctx context.Context, input Info) error {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return permErr
+	}
+
 	name := input.Name
 	input.Name = ""
 
@@ -80,7 +100,7 @@ func (c *Client) Update(ctx context.Context, input Info) error {
 
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodPut,
 		[]string{"v1", "config", "rulestacks", input.Rulestack, "urlcustomcategories", name},
 		nil,
@@ -92,14 +112,19 @@ func (c *Client) Update(ctx context.Context, input Info) error {
 }
 
 // Delete removes the given object from the config.
-func (c *Client) Delete(ctx context.Context, stack, name string) error {
-	c.client.Log(http.MethodDelete, "delete rulestack %q custom url category: %s", stack, name)
+func (c *Client) Delete(ctx context.Context, input DeleteInput) error {
+	perm, permErr := permissions.Choose(input.Scope)
+	if permErr != nil {
+		return permErr
+	}
+
+	c.client.Log(http.MethodDelete, "delete rulestack %q custom url category: %s", input.Rulestack, input.Name)
 
 	_, err := c.client.Communicate(
 		ctx,
-		permissions.Rulestack,
+		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", stack, "urlcustomcategories", name},
+		[]string{"v1", "config", "rulestacks", input.Rulestack, "urlcustomcategories", input.Name},
 		nil,
 		nil,
 		nil,
