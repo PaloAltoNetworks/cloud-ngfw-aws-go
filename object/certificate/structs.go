@@ -8,6 +8,7 @@ import (
 
 type ListInput struct {
 	Rulestack   string `json:"-"`
+	Scope       string `json:"-"`
 	Candidate   bool   `json:"Candidate,omitempty"`
 	Running     bool   `json:"Running,omitempty"`
 	Uncommitted bool   `json:"Uncommitted,omitempty"`
@@ -41,6 +42,7 @@ type ListUncommitted struct {
 
 type Info struct {
 	Rulestack    string `json:"-"`
+	Scope        string `json:"-"`
 	Name         string `json:"Name,omitempty"`
 	Description  string `json:"Description,omitempty"`
 	SignerArn    string `json:"CertificateSignerArn,omitempty"`
@@ -54,6 +56,7 @@ type Info struct {
 type ReadInput struct {
 	Rulestack string `json:"-"`
 	Name      string `json:"-"`
+	Scope     string `json:"-"`
 	Candidate bool   `json:"Candidate,omitempty"`
 	Running   bool   `json:"Running,omitempty"`
 	NextToken string `json:"NextToken,omitempty"`
@@ -75,4 +78,12 @@ type ReadResponse struct {
 	NextToken string `json:"NextToken"`
 	Candidate *Info  `json:"CertificateObjectCandidate"`
 	Running   *Info  `json:"CertificateObjectRunning"`
+}
+
+// V1 delete.
+
+type DeleteInput struct {
+	Rulestack string
+	Name      string
+	Scope     string
 }
