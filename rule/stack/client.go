@@ -2,9 +2,12 @@ package stack
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/permissions"
@@ -204,6 +207,28 @@ func (c *Client) Commit(ctx context.Context, input SimpleInput) error {
 	)
 
 	return err
+}
+
+// PollCommit does the necessary looping to wait for a commit to complete.
+func (c *Client) PollCommit(ctx context.Context, input SimpleInput) (CommitStatus, error) {
+	c.client.Log(http.MethodGet, "begin commit polling: %s", input.Name)
+	defer c.client.Log(http.MethodGet, "end commit polling: %s", input.Name)
+
+	for {
+		ans, err := c.CommitStatus(ctx, input)
+		if err != nil {
+			return ans, err
+		}
+
+		switch strings.ToLower(ans.Response.CommitStatus) {
+		case "pending":
+			time.Sleep(1 * time.Second)
+		case "success":
+			return ans, nil
+		default:
+			return ans, fmt.Errorf(ans.CommitErrors())
+		}
+	}
 }
 
 // CommitStatus gets the commit status.

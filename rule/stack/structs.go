@@ -1,6 +1,9 @@
 package stack
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/tag"
 )
@@ -105,6 +108,22 @@ type CommitStatus struct {
 
 func (o CommitStatus) Failed() *api.Status {
 	return o.Status.Failed()
+}
+
+func (c CommitStatus) CommitErrors() string {
+	var b strings.Builder
+	b.Grow(50 * len(c.Response.CommitMessages))
+
+	b.WriteString(fmt.Sprintf("Commit(%s):", c.Response.CommitStatus))
+	for i, x := range c.Response.CommitMessages {
+		if i != 0 {
+			b.WriteString(" |")
+		}
+		b.WriteString(" ")
+		b.WriteString(x)
+	}
+
+	return b.String()
 }
 
 type CommitResponse struct {
