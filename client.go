@@ -135,7 +135,7 @@ func (c *Client) Setup() error {
 		}
 	}
 	if c.Host == "" {
-		c.Host = "api.us-east-1.aws.cloudngfw.com"
+		c.Host = "api.us-east-1.aws.cloudngfw.paloaltonetworks.com"
 	}
 
 	// Access key.
