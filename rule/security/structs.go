@@ -64,6 +64,7 @@ type Details struct {
 	Applications       []string           `json:"Applications"`
 	Category           CategoryDetails    `json:"Category"`
 	Protocol           string             `json:"Protocol,omitempty"`
+	ProtPortList       []string           `json:"ProtPortList,omitempty"`
 	AuditComment       string             `json:"AuditComment,omitempty"`
 	Action             string             `json:"Action,omitempty"`
 	Logging            bool               `json:"Logging"`
