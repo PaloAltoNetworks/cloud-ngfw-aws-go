@@ -57,6 +57,7 @@ type Details struct {
 	AccountGroup        string        `json:"AccountGroup,omitempty"`
 	MinimumAppIdVersion string        `json:"MinAppIdVersion,omitempty"`
 	LookupXForwardedFor string        `json:"LookupXForwardedFor,omitempty"`
+	NewDemoField        string        `json:"NewDemoField,omitempty"`
 	Profile             ProfileConfig `json:"Profiles"`
 
 	UpdateToken string `json:"UpdateToken,omitempty"`
