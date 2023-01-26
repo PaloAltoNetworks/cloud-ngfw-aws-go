@@ -43,6 +43,7 @@ type Info struct {
 	Description                  string          `json:"Description,omitempty"`
 	Rulestack                    string          `json:"RuleStackName,omitempty"`
 	GlobalRulestack              string          `json:"GlobalRuleStackName,omitempty"`
+	MultiVpc                     bool            `json:"MultiVpcEnable,default:true"`
 	EndpointMode                 string          `json:"EndpointMode,omitempty"`
 	EndpointServiceName          string          `json:"EndpointServiceName,omitempty"`
 	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
