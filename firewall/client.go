@@ -52,7 +52,7 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 
 // Create creates an object.
 func (c *Client) Create(ctx context.Context, input Info) (CreateOutput, error) {
-	c.client.Log(http.MethodPost, "create firewall %q", input.Name)
+	c.client.Log(http.MethodPost, "create firewall %q multi vpc:%+v", input.Name, input.MultiVpc)
 
 	var ans CreateOutput
 	_, err := c.client.Communicate(
@@ -71,11 +71,11 @@ func (c *Client) Create(ctx context.Context, input Info) (CreateOutput, error) {
 // Modify updates the modifiable parts of a NGFW.
 //
 // This includes:
-//   * description
-//   * subnet mappings
-//   * app id version / automatic upgrade app id version
-//   * rulestack
-//   * tags
+//   - description
+//   - subnet mappings
+//   - app id version / automatic upgrade app id version
+//   - rulestack
+//   - tags
 func (c *Client) Modify(ctx context.Context, input Info) error {
 	ans, err := c.Read(ctx, ReadInput{Name: input.Name, AccountId: input.AccountId})
 	if err != nil {
@@ -346,7 +346,7 @@ func (c *Client) ListTags(ctx context.Context, input ListTagsInput) (ListTagsOut
 	if input.AccountId != "" || input.NextToken != "" || input.MaxResults != 0 {
 		uv = url.Values{}
 		if input.AccountId != "" {
-			uv.Set("accountId", input.AccountId)
+			uv.Set("accountid", input.AccountId)
 		}
 		if input.NextToken != "" {
 			uv.Set("nexttoken", input.NextToken)
@@ -363,7 +363,7 @@ func (c *Client) ListTags(ctx context.Context, input ListTagsInput) (ListTagsOut
 		http.MethodGet,
 		[]string{"v1", "config", "ngfirewalls", input.Firewall, "tags"},
 		uv,
-		input,
+		nil,
 		&ans,
 	)
 
