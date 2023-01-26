@@ -32,12 +32,11 @@ func (s Status) Error() string {
 	return fmt.Sprintf("Error(%d): %s", s.Code, s.Reason)
 }
 
-func IsPathUnknownError(path []string, body []byte) error {
+func IsErrorMessage(path []string, body []byte, statusCode int) error {
 	var ans unknownApi
 	if err := json.Unmarshal(body, &ans); err == nil {
-		if ans.Message != "" {
-			return NewUnknownPathError(path)
-		}
+		fmt.Sprintf("Error: HTTP %d: %s. path:%s",
+			statusCode, ans.Message, path)
 	}
 
 	return nil

@@ -606,11 +606,12 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		}
 	}
 
+	var resp *http.Response
 	// Perform the API action.
 	if len(c.testData) > 0 {
 		body = []byte(`{"test"}`)
 	} else {
-		resp, err := c.HttpClient.Do(req)
+		resp, err = c.HttpClient.Do(req)
 		if err != nil {
 			return nil, err
 		}
@@ -628,7 +629,7 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 	}
 
 	// Check for unknown path error first.
-	if err := api.IsPathUnknownError(path, body); err != nil {
+	if err := api.IsErrorMessage(path, body, resp.StatusCode); err != nil {
 		return body, err
 	}
 
