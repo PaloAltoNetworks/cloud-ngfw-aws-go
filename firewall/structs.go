@@ -43,7 +43,7 @@ type Info struct {
 	Description                  string          `json:"Description,omitempty"`
 	Rulestack                    string          `json:"RuleStackName,omitempty"`
 	GlobalRulestack              string          `json:"GlobalRuleStackName,omitempty"`
-	MultiVpc                     bool            `json:"MultiVpcEnable,default:true"`
+	MultiVpc                     bool            `json:"MultiVpcEnable"`
 	EndpointMode                 string          `json:"EndpointMode,omitempty"`
 	EndpointServiceName          string          `json:"EndpointServiceName,omitempty"`
 	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
@@ -83,6 +83,7 @@ type UpdateSubnetMappingsInput struct {
 	AccountId                  string          `json:"AccountId,omitempty"`
 	AssociateSubnetMappings    []SubnetMapping `json:"AssociateSubnetMappings,omitempty"`
 	DisassociateSubnetMappings []SubnetMapping `json:"DisassociateSubnetMappings,omitempty"`
+	MultiVpc                   bool            `json:"MultiVpcEnable"`
 	UpdateToken                string          `json:"UpdateToken,omitempty"`
 }
 

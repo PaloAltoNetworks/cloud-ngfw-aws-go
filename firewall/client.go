@@ -163,6 +163,19 @@ func (c *Client) Modify(ctx context.Context, input Info) error {
 			AccountId:                  input.AccountId,
 			AssociateSubnetMappings:    assoc,
 			DisassociateSubnetMappings: disassoc,
+			MultiVpc:                   cur.MultiVpc,
+		}
+		if err = c.UpdateSubnetMappings(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	// update MultiVpcEnable
+	if input.MultiVpc != cur.MultiVpc {
+		v := UpdateSubnetMappingsInput{
+			Firewall:  input.Name,
+			AccountId: input.AccountId,
+			MultiVpc:  input.MultiVpc,
 		}
 		if err = c.UpdateSubnetMappings(ctx, v); err != nil {
 			return err
@@ -306,12 +319,12 @@ func (c *Client) UpdateContentVersion(ctx context.Context, input UpdateContentVe
 
 // UpdateSubnetMappings updates the subnet mappings of the firewall.
 func (c *Client) UpdateSubnetMappings(ctx context.Context, input UpdateSubnetMappingsInput) error {
-	c.client.Log(http.MethodPatch, "updating firewall subnet mappings: %s", input.Firewall)
+	c.client.Log(http.MethodPut, "updating firewall subnet mappings: %s", input.Firewall)
 
 	_, err := c.client.Communicate(
 		ctx,
 		permissions.Firewall,
-		http.MethodPatch,
+		http.MethodPut,
 		[]string{"v1", "config", "ngfirewalls", input.Firewall, "subnets"},
 		nil,
 		input,
