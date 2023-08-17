@@ -29,6 +29,7 @@ type Client struct {
 	Host      string            `json:"host"`
 	AccessKey string            `json:"access-key"`
 	SecretKey string            `json:"secret-key"`
+	Profile   string            `json:"profile"`
 	Region    string            `json:"region"`
 	Protocol  string            `json:"protocol"`
 	Timeout   int               `json:"timeout"`
@@ -153,6 +154,15 @@ func (c *Client) Setup() error {
 			c.SecretKey = val
 		} else if json_client.SecretKey != "" {
 			c.SecretKey = json_client.SecretKey
+		}
+	}
+
+	// Profile.
+	if c.Profile == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_PROFILE"); c.CheckEnvironment && val != "" {
+			c.Profile = val
+		} else if json_client.Profile != "" {
+			c.Profile = json_client.Profile
 		}
 	}
 
@@ -355,6 +365,7 @@ func (c *Client) RefreshJwts(ctx context.Context) error {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 		},
+		Profile: c.Profile,
 	})
 
 	if err != nil {
