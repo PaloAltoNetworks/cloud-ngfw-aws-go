@@ -52,7 +52,10 @@ func (c *Client) List(ctx context.Context, input ListInput) (ListOutput, error) 
 
 // Create creates an object.
 func (c *Client) Create(ctx context.Context, input Info) (CreateOutput, error) {
-	c.client.Log(http.MethodPost, "create firewall %q multi vpc:%+v", input.Name, input.MultiVpc)
+	c.client.Log(http.MethodPost, "create firewall %q multi vpc:%+v link ID:%+v",
+		input.Name,
+		input.MultiVpc,
+		input.LinkId)
 
 	var ans CreateOutput
 	_, err := c.client.Communicate(
@@ -72,6 +75,7 @@ func (c *Client) Create(ctx context.Context, input Info) (CreateOutput, error) {
 //
 // This includes:
 //   - description
+//   - link id
 //   - subnet mappings
 //   - app id version / automatic upgrade app id version
 //   - rulestack
@@ -104,6 +108,20 @@ func (c *Client) Modify(ctx context.Context, input Info) error {
 			Description: input.Description,
 		}
 		if err = c.UpdateDescription(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	// If
+
+	// Update link Id.
+	if input.LinkId != cur.LinkId {
+		v := UpdateLinkIdInput{
+			Firewall:  input.Name,
+			AccountId: input.AccountId,
+			LinkId:    input.LinkId,
+		}
+		if err = c.UpdateLinkId(ctx, v); err != nil {
 			return err
 		}
 	}
@@ -292,6 +310,49 @@ func (c *Client) UpdateDescription(ctx context.Context, input UpdateDescriptionI
 		permissions.Firewall,
 		http.MethodPut,
 		[]string{"v1", "config", "ngfirewalls", input.Firewall, "description"},
+		nil,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+// UpdateLinkId updates the link id of the firewall.
+func (c *Client) UpdateLinkId(ctx context.Context, input UpdateLinkIdInput) error {
+	c.client.Log(http.MethodPut, "updating firewall link: %s", input.Firewall)
+
+	if input.LinkId == "" || input.LinkId == "None" {
+		v := DeleteLinkIdInput{
+			Firewall:  input.Firewall,
+			AccountId: input.AccountId,
+		}
+		err := c.DeleteLinkId(ctx, v)
+		return err
+	}
+
+	_, err := c.client.Communicate(
+		ctx,
+		permissions.Firewall,
+		http.MethodPut,
+		[]string{"v1", "config", "ngfirewalls", input.Firewall, "link"},
+		nil,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+// DeleteLinkId deletes the link id of the firewall.
+func (c *Client) DeleteLinkId(ctx context.Context, input DeleteLinkIdInput) error {
+	c.client.Log(http.MethodDelete, "deleting firewall link: %s", input.Firewall)
+
+	_, err := c.client.Communicate(
+		ctx,
+		permissions.Firewall,
+		http.MethodDelete,
+		[]string{"v1", "config", "ngfirewalls", input.Firewall, "link"},
 		nil,
 		input,
 		nil,
