@@ -1,4 +1,4 @@
-package awsngfw
+package cloudngfwgosdk
 
 // Logging constants.
 const (
@@ -13,4 +13,10 @@ const (
 	LogPath
 	LogSend
 	LogReceive
+)
+
+// Supported Cloud Providers
+const (
+	CloudProviderAWS   = "aws"
+	CloudProviderAzure = "azure"
 )
