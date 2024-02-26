@@ -107,6 +107,7 @@ type Client interface {
 	SetEndpoint(ctx context.Context, input EndPointInput) error
 	GetCloudNGFWServiceToken(ctx context.Context, info stack.AuthInput) (stack.AuthOutput, error)
 	IsSyncModeEnabled(ctx context.Context) bool
+	GetResourceTimeout(ctx context.Context) int
 }
 
 type ApiClient struct {
@@ -133,6 +134,10 @@ func (c *ApiClient) SetEndpoint(ctx context2.Context, input EndPointInput) error
 
 func (c *ApiClient) IsSyncModeEnabled(ctx context2.Context) bool {
 	return c.client.IsSyncModeEnabled(ctx)
+}
+
+func (c *ApiClient) GetResourceTimeout(ctx context2.Context) int {
+	return c.client.GetResourceTimeout(ctx)
 }
 
 // sdk consumers instantiate APIClient using NewAPIClient() and invoke APIs under api directory
