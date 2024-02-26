@@ -1,11 +1,11 @@
 package aws
 
 import (
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,12 +16,12 @@ import (
 	"sync"
 	"time"
 
+	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sts"
-	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
 )
 
 // Client is the client.
@@ -42,6 +42,7 @@ type Client struct {
 	SecretKey       string            `json:"secret-key"`
 	Protocol        string            `json:"protocol"`
 	Timeout         int               `json:"timeout"`
+	ResourceTimeout int               `json:"resource_timeout"`
 	Headers         map[string]string `json:"headers"`
 	Agent           string            `json:"agent"`
 
@@ -291,6 +292,24 @@ func (c *Client) Setup() error {
 		return fmt.Errorf("Timeout for %q must be a positive int", c.Host)
 	}
 	tout = time.Duration(time.Duration(c.Timeout) * time.Second)
+
+	// Resource Timeout.
+	if c.ResourceTimeout == 0 {
+		if val := os.Getenv("CLOUDNGFWAWS_RESOURCE_TIMEOUT"); c.CheckEnvironment && val != "" {
+			if ival, err := strconv.Atoi(val); err != nil {
+				return fmt.Errorf("Failed to parse resource timeout env var as int: %s", err)
+			} else {
+				c.ResourceTimeout = ival
+			}
+		} else if json_client.ResourceTimeout != 0 {
+			c.ResourceTimeout = json_client.ResourceTimeout
+		} else {
+			c.ResourceTimeout = 7200
+		}
+	}
+	if c.ResourceTimeout <= 0 {
+		return fmt.Errorf("Resource Timeout must be a positive int")
+	}
 
 	// Headers.
 	if len(c.Headers) == 0 {
@@ -720,4 +739,8 @@ func (c *Client) SetEndpoint(ctx context.Context, input api.EndPointInput) error
 
 func (c *Client) IsSyncModeEnabled(ctx context.Context) bool {
 	return c.SyncMode
+}
+
+func (c *Client) GetResourceTimeout(ctx context.Context) int {
+	return c.ResourceTimeout
 }

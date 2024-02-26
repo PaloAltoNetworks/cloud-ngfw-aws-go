@@ -339,7 +339,7 @@ func (c *Client) ListTagsForFirewall(ctx context.Context, input firewall.ListTag
 	if input.AccountId != "" || input.NextToken != "" || input.MaxResults != 0 {
 		uv = url.Values{}
 		if input.AccountId != "" {
-			uv.Set("accountId", input.AccountId)
+			uv.Set("accountid", input.AccountId)
 		}
 		if input.NextToken != "" {
 			uv.Set("nexttoken", input.NextToken)
@@ -356,7 +356,7 @@ func (c *Client) ListTagsForFirewall(ctx context.Context, input firewall.ListTag
 		http.MethodGet,
 		[]string{"v1", "config", "ngfirewalls", input.Firewall, "tags"},
 		uv,
-		input,
+		nil,
 		&ans,
 	)
 
