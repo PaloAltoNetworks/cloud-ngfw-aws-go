@@ -227,7 +227,6 @@ func (c *Client) RefreshGlobalRulestackAdminJwt(ctx context.Context) error {
 	}
 
 	svc := sts.New(sess)
-	results := make(chan error)
 
 	// Get global rulestack JWT.
 	if c.GraArn == "" {
@@ -252,11 +251,9 @@ func (c *Client) RefreshGlobalRulestackAdminJwt(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
 	tNow := time.Now()
 	c.GlobalRulestackAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
 	c.GlobalRulestackAdminJwt = ans.Resp.Jwt
 	c.GlobalRulestackSubscriptionKey = ans.Resp.SubscriptionKey
-	results <- nil
 	return nil
 }
