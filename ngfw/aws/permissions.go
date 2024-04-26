@@ -77,7 +77,13 @@ func (c *Client) RefreshFirewallAdminJwt(ctx context.Context) error {
 
 	svc := sts.New(sess)
 	// Get firewall JWT.
-	if c.LfaArn == "" {
+	var rarn *string
+	if c.LfaArn != "" {
+		rarn = aws.String(c.LfaArn)
+	} else if c.Arn != "" {
+		rarn = aws.String(c.Arn)
+	} else {
+		log.Printf("err: No LFA role is assigned")
 		return err
 	}
 
@@ -85,7 +91,7 @@ func (c *Client) RefreshFirewallAdminJwt(ctx context.Context) error {
 		log.Printf("(login) refreshing firewall JWT...")
 	}
 	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(c.LfaArn),
+		RoleArn:         rarn,
 		RoleSessionName: aws.String("sdk_session"),
 	})
 	if err != nil {
@@ -153,7 +159,12 @@ func (c *Client) RefreshRulestackAdminJwt(ctx context.Context) error {
 
 	svc := sts.New(sess)
 	// Get rulestack JWT.
-	if c.LraArn == "" {
+	var rarn *string
+	if c.LraArn != "" {
+		rarn = aws.String(c.LraArn)
+	} else if c.Arn != "" {
+		rarn = aws.String(c.Arn)
+	} else {
 		log.Printf("err: No LRA role is assigned")
 		return err
 	}
@@ -161,7 +172,7 @@ func (c *Client) RefreshRulestackAdminJwt(ctx context.Context) error {
 		log.Printf("(login) refreshing RulestackAdmin JWT...")
 	}
 	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(c.LraArn),
+		RoleArn:         rarn,
 		RoleSessionName: aws.String("sdk_session"),
 	})
 	if err != nil {
@@ -229,15 +240,21 @@ func (c *Client) RefreshGlobalRulestackAdminJwt(ctx context.Context) error {
 	svc := sts.New(sess)
 
 	// Get global rulestack JWT.
-	if c.GraArn == "" {
-		return fmt.Errorf("no Role Arn specified")
+	var rarn *string
+	if c.GraArn != "" {
+		rarn = aws.String(c.GraArn)
+	} else if c.Arn != "" {
+		rarn = aws.String(c.Arn)
+	} else {
+		log.Printf("err: No GRA role is assigned")
+		return err
 	}
 
 	if c.Logging&awsngfw.LogLogin == awsngfw.LogLogin {
 		log.Printf("(login) refreshing global rulestack JWT...")
 	}
 	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(c.GraArn),
+		RoleArn:         rarn,
 		RoleSessionName: aws.String("sdk_session"),
 	})
 	if err != nil {
