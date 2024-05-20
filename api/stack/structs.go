@@ -219,7 +219,7 @@ type SaveRulestackXmlInput struct {
 	Name              string          `json:"-"`
 	Scope             string          `json:"-"`
 	RuleStackEntryXml XmlString       `json:"RuleStackEntryXml"`
-	ReadOnly          bool            `json:"ReadOnly"`
+	ReadOnly          bool            `json:"ReadOnly,omitempty"`
 	Firewalls         []FirewallEntry `json:"Firewalls,omitempty"`
 	RulesStackType    string          `json:"RulesStackType,omitempty"`
 }
@@ -247,7 +247,8 @@ type CreateSCMRuleStackInput struct {
 
 type FirewallEntry struct {
 	Firewall  string `json:"Firewall"`
-	AccountId string `json:"AccountId"`
+	AccountId string `json:"AccountId,omitempty"`
+	ArmId     string `json:"ArmId,omitempty"`
 }
 
 type PushRulestackCMOutput struct {

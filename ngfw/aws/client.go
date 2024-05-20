@@ -30,12 +30,14 @@ type Client struct {
 	Tenant          string            `json:"tenant"`
 	ExternalID      string            `json:"externalID"`
 	Region          string            `json:"region"`
+	MPRegion        string            `json:"mp_region"`
 	UserName        string            `json:"userName"`
 	Password        string            `json:"b64"`
 	UserPoolID      string            `json:"userPoolID"`
 	AppClientID     string            `json:"appClientID"`
 	AppClientSecret string            `json:"appClientSecret"`
 	Host            string            `json:"host"`
+	MPRegionHost    string            `json:"mp_region_host"`
 	AccessKey       string            `json:"access-key"`
 	Profile         string            `json:"profile"`
 	SyncMode        bool              `json:"sync_mode"`
@@ -48,10 +50,11 @@ type Client struct {
 
 	AuthType string `json:"-"`
 
-	LfaArn string `json:"lfa-arn"`
-	LraArn string `json:"lra-arn"`
-	GraArn string `json:"gra-arn"`
-	Arn    string `json:"arn"`
+	LfaArn       string `json:"lfa-arn"`
+	LraArn       string `json:"lra-arn"`
+	GraArn       string `json:"gra-arn"`
+	AcctAdminArn string `json:"account-admin-arn"`
+	Arn          string `json:"arn"`
 
 	AuthFile         string `json:"auth-file"`
 	CheckEnvironment bool   `json:"-"`
@@ -80,9 +83,14 @@ type Client struct {
 	CloudRulestackAdminJwtExpTime  time.Time  `json:"-"`
 	CloudRulestackSubscriptionKey  string     `json:"-"`
 	CloudRulestackAdminMutex       sync.Mutex `json:"-"`
+	AccountAdminJwt                string     `json:"-"`
+	AccountAdminJwtExpTime         time.Time  `json:"-"`
+	AccountAdminSubscriptionKey    string     `json:"-"`
+	AccountAdminMutex              sync.Mutex `json:"-"`
 
 	// Internal variables.
-	apiPrefix string
+	apiPrefix   string
+	mpApiPrefix string
 
 	// Initialized during Setup().
 	HttpClient       *http.Client
@@ -177,6 +185,18 @@ func (c *Client) Setup() error {
 		c.Host = "api.us-east-1.aws.cloudngfw.paloaltonetworks.com"
 	}
 
+	// Host.
+	if c.MPRegionHost == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_MP_REGION_HOST"); c.CheckEnvironment && val != "" {
+			c.MPRegionHost = val
+		} else if json_client.MPRegionHost != "" {
+			c.MPRegionHost = json_client.MPRegionHost
+		}
+	}
+	if c.MPRegionHost == "" {
+		c.MPRegionHost = DefaultMPRegionHost
+	}
+
 	// Access key.
 	if c.AccessKey == "" {
 		if val := os.Getenv("CLOUDNGFWAWS_ACCESS_KEY"); c.CheckEnvironment && val != "" {
@@ -240,6 +260,15 @@ func (c *Client) Setup() error {
 		}
 	}
 
+	// Account Admin ARN.
+	if c.AcctAdminArn == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_ACCT_ADMIN_ARN"); c.CheckEnvironment && val != "" {
+			c.AcctAdminArn = val
+		} else if json_client.AcctAdminArn != "" {
+			c.AcctAdminArn = json_client.AcctAdminArn
+		}
+	}
+
 	// ARN.
 	if c.Arn == "" {
 		if val := os.Getenv("CLOUDNGFWAWS_ARN"); c.CheckEnvironment && val != "" {
@@ -258,6 +287,19 @@ func (c *Client) Setup() error {
 		} else {
 			return fmt.Errorf("No region was specified")
 		}
+	}
+
+	// MP Region.
+	if c.MPRegion == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_MP_REGION"); c.CheckEnvironment && val != "" {
+			c.MPRegion = val
+		} else if json_client.MPRegion != "" {
+			c.MPRegion = json_client.MPRegion
+		}
+	}
+
+	if c.MPRegion == "" {
+		c.MPRegion = DefaultMPRegion
 	}
 
 	// Protocol.
@@ -400,6 +442,7 @@ func (c *Client) Setup() error {
 
 	// Configure the uri prefix.
 	c.apiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.Host)
+	c.mpApiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.MPRegionHost)
 	return nil
 }
 
@@ -463,13 +506,17 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 	if len(queryParams) > 0 {
 		qp = fmt.Sprintf("?%s", queryParams.Encode())
 	}
+	apiPrefix := c.apiPrefix
+	if auth == PermissionAccountAdminJWT || auth == PermissionAccount {
+		apiPrefix = c.mpApiPrefix
+	}
 	if c.Logging&awsngfw.LogPath == awsngfw.LogPath {
-		log.Printf("path: %s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp)
+		log.Printf("path: %s/%s%s", apiPrefix, strings.Join(path, "/"), qp)
 	}
 	req, err := http.NewRequestWithContext(
 		ctx,
 		method,
-		fmt.Sprintf("%s/%s%s", c.apiPrefix, strings.Join(path, "/"), qp),
+		fmt.Sprintf("%s/%s%s", apiPrefix, strings.Join(path, "/"), qp),
 		strings.NewReader(string(data)),
 	)
 	if err != nil {
@@ -486,7 +533,7 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", c.Agent)
 	switch auth {
-	case "":
+	case "", PermissionAccountAdminJWT:
 	case PermissionFirewall:
 		switch c.AuthType {
 		case AuthTypeIAMRole:
@@ -547,9 +594,22 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 			req.Header.Set("Authorization", c.GlobalRulestackAdminJwt)
 			req.Header.Set("x-api-key", c.GlobalRulestackSubscriptionKey)
 		}
+	case PermissionAccount:
+		switch c.AuthType {
+		case AuthTypeIAMRole:
+			err := c.RefreshAccountAdminJwt(ctx)
+			if err != nil {
+				return nil, fmt.Errorf(permErr, c.ExternalID, c.MPRegion, PermissionAccount, err)
+			}
+			req.Header.Set("Authorization", c.AccountAdminJwt)
+			req.Header.Set("x-api-key", c.AccountAdminSubscriptionKey)
+		default:
+			req.Header.Set("Authorization", c.AccountAdminJwt)
+			req.Header.Set("x-api-key", c.AccountAdminSubscriptionKey)
+		}
 	default:
 		return nil, fmt.Errorf("[tenant:%s][region:%s] Unknown permission required: %q",
-			c.ExternalID, c.Region, auth)
+			c.ExternalID, c.MPRegion, auth)
 	}
 
 	// Optional: v4 sign the request.
@@ -562,7 +622,11 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 			},
 		}
 		signer := v4.NewSigner(credentials.NewCredentials(prov))
-		_, err = signer.Sign(req, strings.NewReader(string(data)), "execute-api", c.Region, time.Now())
+		region := c.Region
+		if auth == PermissionAccountAdminJWT || auth == PermissionAccount {
+			region = c.MPRegion
+		}
+		_, err = signer.Sign(req, strings.NewReader(string(data)), "execute-api", region, time.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -739,6 +803,10 @@ func (c *Client) SetEndpoint(ctx context.Context, input api.EndPointInput) error
 
 func (c *Client) IsSyncModeEnabled(ctx context.Context) bool {
 	return c.SyncMode
+}
+
+func (c *Client) GetMPRegion(ctx context.Context) string {
+	return c.MPRegion
 }
 
 func (c *Client) GetResourceTimeout(ctx context.Context) int {

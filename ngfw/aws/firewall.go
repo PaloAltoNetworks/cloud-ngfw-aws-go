@@ -61,6 +61,42 @@ func (c *Client) CreateFirewall(ctx context.Context, input firewall.Info) (firew
 	return ans, err
 }
 
+func buildSubnetMappingMap(mappings []firewall.SubnetMapping) map[string]bool {
+	subnetMap := make(map[string]bool)
+	for _, mapping := range mappings {
+		if mapping.SubnetId != "" {
+			subnetMap[mapping.SubnetId] = true
+		}
+		if mapping.AvailabilityZone != "" {
+			subnetMap[mapping.AvailabilityZone] = true
+		}
+		if mapping.AvailabilityZoneId != "" {
+			subnetMap[mapping.AvailabilityZoneId] = true
+		}
+	}
+	return subnetMap
+}
+
+func subnetMappingExists(mapping firewall.SubnetMapping, inputMap map[string]bool) bool {
+	found := false
+	if mapping.SubnetId != "" {
+		if _, ok := inputMap[mapping.SubnetId]; ok {
+			found = true
+		}
+	}
+	if mapping.AvailabilityZone != "" {
+		if _, ok := inputMap[mapping.AvailabilityZone]; ok {
+			found = true
+		}
+	}
+	if mapping.AvailabilityZoneId != "" {
+		if _, ok := inputMap[mapping.AvailabilityZoneId]; ok {
+			found = true
+		}
+	}
+	return found
+}
+
 // Modify updates the modifiable parts of a NGFW.
 //
 // This includes:
@@ -69,10 +105,11 @@ func (c *Client) CreateFirewall(ctx context.Context, input firewall.Info) (firew
 //   - app id version / automatic upgrade app id version
 //   - rulestack
 //   - tags
-func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error {
+func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) (bool, error) {
+	waitForUpdate := false
 	ans, err := c.ReadFirewall(ctx, firewall.ReadInput{Name: input.Name, AccountId: input.AccountId})
 	if err != nil {
-		return err
+		return waitForUpdate, err
 	}
 	cur := ans.Response.Firewall
 	curTags := cur.Tags
@@ -85,7 +122,7 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 	}
 	tans, err := c.ListTagsForFirewall(ctx, tin)
 	if err != nil {
-		return err
+		return waitForUpdate, err
 	}
 	curTags = tans.Response.Tags
 
@@ -97,60 +134,49 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 			Description: input.Description,
 		}
 		if err = c.UpdateFirewallDescription(ctx, v); err != nil {
-			return err
+			return waitForUpdate, err
 		}
 	}
 
 	// Update subnet mappings.
 	assoc := make([]firewall.SubnetMapping, 0, len(input.SubnetMappings))
 	disassoc := make([]firewall.SubnetMapping, 0, len(cur.SubnetMappings))
+	inputMap := buildSubnetMappingMap(input.SubnetMappings)
+	curMap := buildSubnetMappingMap(cur.SubnetMappings)
 	for _, x := range input.SubnetMappings {
-		found := false
-		for _, y := range cur.SubnetMappings {
-			if x.SubnetId != "" && x.SubnetId == y.SubnetId {
-				found = true
-			} else if x.AvailabilityZone != "" && x.AvailabilityZone == y.AvailabilityZone {
-				found = true
+		if !subnetMappingExists(x, curMap) {
+			mapping := firewall.SubnetMapping{}
+			if x.SubnetId != "" {
+				mapping.SubnetId = x.SubnetId
+			} else if x.AvailabilityZoneId != "" {
+				mapping.AvailabilityZoneId = x.AvailabilityZoneId
+			} else if x.AvailabilityZone != "" {
+				mapping.AvailabilityZone = x.AvailabilityZone
 			}
-			if found {
-				break
-			}
-		}
-
-		if !found {
-			assoc = append(assoc, firewall.SubnetMapping{
-				SubnetId:         x.SubnetId,
-				AvailabilityZone: x.AvailabilityZone,
-			})
+			assoc = append(assoc, mapping)
 		}
 	}
 	if len(assoc) == 0 {
 		assoc = nil
 	}
 	for _, x := range cur.SubnetMappings {
-		found := false
-		for _, y := range input.SubnetMappings {
-			if x.SubnetId != "" && x.SubnetId == y.SubnetId {
-				found = true
-			} else if x.AvailabilityZone != "" && x.AvailabilityZone == y.AvailabilityZone {
-				found = true
+		if !subnetMappingExists(x, inputMap) {
+			mapping := firewall.SubnetMapping{}
+			if x.SubnetId != "" {
+				mapping.SubnetId = x.SubnetId
+			} else if x.AvailabilityZoneId != "" {
+				mapping.AvailabilityZoneId = x.AvailabilityZoneId
+			} else if x.AvailabilityZone != "" {
+				mapping.AvailabilityZone = x.AvailabilityZone
 			}
-			if found {
-				break
-			}
-		}
-
-		if !found {
-			disassoc = append(assoc, firewall.SubnetMapping{
-				SubnetId:         x.SubnetId,
-				AvailabilityZone: x.AvailabilityZone,
-			})
+			disassoc = append(disassoc, mapping)
 		}
 	}
 	if len(disassoc) == 0 {
 		disassoc = nil
 	}
 	if assoc != nil || disassoc != nil {
+		waitForUpdate = true
 		v := firewall.UpdateSubnetMappingsInput{
 			Firewall:                   input.Name,
 			AccountId:                  input.AccountId,
@@ -158,12 +184,13 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 			DisassociateSubnetMappings: disassoc,
 		}
 		if err = c.UpdateFirewallSubnetMappings(ctx, v); err != nil {
-			return err
+			return waitForUpdate, err
 		}
 	}
 
 	// Update content version.
 	if input.AppIdVersion != cur.AppIdVersion || input.AutomaticUpgradeAppIdVersion != cur.AutomaticUpgradeAppIdVersion {
+		waitForUpdate = true
 		v := firewall.UpdateContentVersionInput{
 			Firewall:                     input.Name,
 			AccountId:                    input.AccountId,
@@ -171,7 +198,7 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 			AutomaticUpgradeAppIdVersion: input.AutomaticUpgradeAppIdVersion,
 		}
 		if err = c.UpdateFirewallContentVersion(ctx, v); err != nil {
-			return err
+			return waitForUpdate, err
 		}
 	}
 
@@ -183,7 +210,7 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 			Rulestack: input.Rulestack,
 		}
 		if err = c.UpdateFirewallRulestack(ctx, v); err != nil {
-			return err
+			return waitForUpdate, err
 		}
 	}
 
@@ -226,7 +253,7 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 			Tags:      rmTags,
 		}
 		if err = c.RemoveTagsForFirewall(ctx, v); err != nil {
-			return err
+			return waitForUpdate, err
 		}
 	}
 	if len(addTags) > 0 {
@@ -236,12 +263,12 @@ func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) error 
 			Tags:      addTags,
 		}
 		if err = c.AddTagsForFirewall(ctx, v); err != nil {
-			return err
+			return waitForUpdate, err
 		}
 	}
 
 	// Done.
-	return nil
+	return waitForUpdate, nil
 }
 
 // Read returns information on the given object.
@@ -299,12 +326,12 @@ func (c *Client) UpdateFirewallContentVersion(ctx context.Context, input firewal
 
 // UpdateSubnetMappings updates the subnet mappings of the firewall.
 func (c *Client) UpdateFirewallSubnetMappings(ctx context.Context, input firewall.UpdateSubnetMappingsInput) error {
-	c.Log(http.MethodPatch, "updating firewall subnet mappings: %s", input.Firewall)
+	c.Log(http.MethodPut, "updating firewall subnet mappings: %s", input.Firewall)
 
 	_, err := c.Communicate(
 		ctx,
 		PermissionFirewall,
-		http.MethodPatch,
+		http.MethodPut,
 		[]string{"v1", "config", "ngfirewalls", input.Firewall, "subnets"},
 		nil,
 		input,

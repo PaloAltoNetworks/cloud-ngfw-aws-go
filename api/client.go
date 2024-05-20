@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/account"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/appid"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/certificate"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/country"
@@ -40,7 +41,6 @@ type Client interface {
 	ExportRuleStackXML(ctx context.Context, input stack.ReadInput) (stack.ExportRulestackXmlOutput, error)
 	SaveRuleStackXML(ctx context.Context, input stack.SaveRulestackXmlInput) error
 	UpdateRuleStack(ctx context.Context, input stack.Info) error
-	CreateSCMRuleStack(ctx context.Context, input stack.CreateSCMRuleStackInput) error
 	DeleteRuleStack(ctx context.Context, input stack.SimpleInput) error
 	CommitRuleStack(ctx context.Context, input stack.SimpleInput) error
 	PollCommitRuleStack(ctx context.Context, input stack.SimpleInput) (stack.CommitStatus, error)
@@ -92,7 +92,7 @@ type Client interface {
 
 	ListFirewall(ctx context.Context, input firewall.ListInput) (firewall.ListOutput, error)
 	CreateFirewall(ctx context.Context, input firewall.Info) (firewall.CreateOutput, error)
-	ModifyFirewall(ctx context.Context, input firewall.Info) error
+	ModifyFirewall(ctx context.Context, input firewall.Info) (bool, error)
 	ReadFirewall(ctx context.Context, input firewall.ReadInput) (firewall.ReadOutput, error)
 	UpdateFirewallDescription(ctx context.Context, input firewall.UpdateDescriptionInput) error
 	UpdateFirewallContentVersion(ctx context.Context, input firewall.UpdateContentVersionInput) error
@@ -106,8 +106,13 @@ type Client interface {
 	DisAssociateGlobalRuleStack(ctx context.Context, input firewall.DisAssociateInput) (firewall.DisAssociateOutput, error)
 	SetEndpoint(ctx context.Context, input EndPointInput) error
 	GetCloudNGFWServiceToken(ctx context.Context, info stack.AuthInput) (stack.AuthOutput, error)
+	CreateAccount(ctx context.Context, input account.CreateInput) (account.CreateOutput, error)
+	ReadAccount(ctx context.Context, input account.ReadInput) (account.ReadOutput, error)
+	ListAccounts(ctx context.Context, input account.ListInput) (account.ListOutput, error)
+	DeleteAccount(ctx context.Context, input account.DeleteInput) error
 	IsSyncModeEnabled(ctx context.Context) bool
 	GetResourceTimeout(ctx context.Context) int
+	GetMPRegion(ctx context.Context) string
 }
 
 type ApiClient struct {
@@ -138,6 +143,10 @@ func (c *ApiClient) IsSyncModeEnabled(ctx context2.Context) bool {
 
 func (c *ApiClient) GetResourceTimeout(ctx context2.Context) int {
 	return c.client.GetResourceTimeout(ctx)
+}
+
+func (c *ApiClient) GetMPRegion(ctx context2.Context) string {
+	return c.client.GetMPRegion(ctx)
 }
 
 // sdk consumers instantiate APIClient using NewAPIClient() and invoke APIs under api directory

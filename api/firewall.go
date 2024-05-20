@@ -24,11 +24,12 @@ func (c *ApiClient) CreateFirewall(ctx context.Context, input firewall.Info) (fi
 	return out, nil
 }
 
-func (c *ApiClient) ModifyFirewall(ctx context.Context, input firewall.Info) error {
-	if err := c.client.ModifyFirewall(ctx, input); err != nil {
-		return err
+func (c *ApiClient) ModifyFirewall(ctx context.Context, input firewall.Info) (bool, error) {
+	waitForUpdate, err := c.client.ModifyFirewall(ctx, input)
+	if err != nil {
+		return waitForUpdate, err
 	}
-	return nil
+	return waitForUpdate, nil
 }
 
 func (c *ApiClient) ReadFirewall(ctx context.Context, input firewall.ReadInput) (firewall.ReadOutput, error) {

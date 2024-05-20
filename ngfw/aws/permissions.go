@@ -18,6 +18,8 @@ const (
 	PermissionFirewall        = "firewall"
 	PermissionRulestack       = "rulestack"
 	PermissionGlobalRulestack = "global rulestack"
+	PermissionAccount         = "account admin"
+	PermissionAccountAdminJWT = "account admin JWT"
 
 	AuthTypeIAMRole    = "AuthTypeIAMRole"
 	AuthTypeCognito    = "AuthTypeCognito"
@@ -272,5 +274,77 @@ func (c *Client) RefreshGlobalRulestackAdminJwt(ctx context.Context) error {
 	c.GlobalRulestackAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
 	c.GlobalRulestackAdminJwt = ans.Resp.Jwt
 	c.GlobalRulestackSubscriptionKey = ans.Resp.SubscriptionKey
+	return nil
+}
+
+// RefreshJwts refreshes all JWTs and stores them for future API calls.
+func (c *Client) RefreshAccountAdminJwt(ctx context.Context) error {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	if c.Logging&awsngfw.LogLogin == awsngfw.LogLogin {
+		log.Printf("(login) refreshing JWTs...")
+	}
+	c.AccountAdminMutex.Lock()
+	defer c.AccountAdminMutex.Unlock()
+	if c.AccountAdminJwtExpTime.Sub(time.Now()) > 10*time.Second {
+		// the jwt is valid for 10 or more seconds. let's not replenish it now
+		return nil
+	}
+
+	jwtReq := getJwt{
+		Expires: 120,
+		/*
+			KeyInfo: &jwtKeyInfo{
+				Region: c.Region,
+				Tenant: "XY",
+			},
+		*/
+	}
+
+	var creds *credentials.Credentials
+	if c.AccessKey != "" || c.SecretKey != "" {
+		creds = credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, "")
+	}
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Credentials: creds,
+			Region:      aws.String(c.MPRegion),
+		},
+		Profile: *aws.String(c.Profile),
+	})
+	if err != nil {
+		return err
+	}
+
+	svc := sts.New(sess)
+	// Get account admin JWT.
+	if c.AcctAdminArn == "" {
+		return err
+	}
+
+	if c.Logging&awsngfw.LogLogin == awsngfw.LogLogin {
+		log.Printf("(login) refreshing account admin JWT...")
+	}
+	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
+		RoleArn:         aws.String(c.AcctAdminArn),
+		RoleSessionName: aws.String("sdk_session"),
+	})
+	if err != nil {
+		return err
+	}
+
+	var ans authResponse
+	_, err = c.Communicate(
+		ctx, PermissionAccountAdminJWT, http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudaccountadmin"}, nil, jwtReq, &ans, result.Credentials,
+	)
+	if err != nil {
+		log.Printf("err:%+v", err)
+		return err
+	}
+
+	tNow := time.Now()
+	c.AccountAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
+	c.AccountAdminJwt = ans.Resp.Jwt
+	c.AccountAdminSubscriptionKey = ans.Resp.SubscriptionKey
 	return nil
 }

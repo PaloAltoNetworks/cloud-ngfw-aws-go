@@ -13,6 +13,8 @@ type Info struct {
 	Firewall                  string           `json:"FirewallName,omitempty"`
 	LogDestinations           []LogDestination `json:"LogDestinationConfigs"`
 	CloudWatchMetricNamespace string           `json:"CloudWatchMetricNamespace,omitempty"`
+	AdvancedThreatLog         bool             `json:"AdvancedThreatLog,omitempty"`
+	CloudWatchMetricsFields   []string         `json:"CloudWatchMetricsFields,omitempty"`
 }
 
 type LogDestination struct {

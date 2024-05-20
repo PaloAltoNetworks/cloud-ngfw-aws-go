@@ -84,18 +84,6 @@ func (c *ApiClient) CreateRuleStack(ctx context.Context, input stack.Info) error
 	return nil
 }
 
-func (c *ApiClient) CreateSCMRuleStack(ctx context.Context, input stack.CreateSCMRuleStackInput) error {
-	if err := c.client.CreateSCMRuleStack(ctx, input); err != nil {
-		return err
-	}
-
-	log.Printf(
-		"export rulestack:%s",
-		input.Name)
-
-	return nil
-}
-
 func (c *ApiClient) UpdateRuleStack(ctx context.Context, input stack.Info) error {
 	log.Printf(
 		"create rulestack %s",
