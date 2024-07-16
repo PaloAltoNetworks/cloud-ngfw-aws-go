@@ -1,9 +1,9 @@
 package aws
 
 import (
+	"context"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/firewall"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
-	"context"
 	"net/http"
 	"net/url"
 	"strconv"

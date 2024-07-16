@@ -2,13 +2,13 @@ package aws
 
 import (
 	"bytes"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
 	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
 	"net/http"
 	"net/url"
 	"strconv"

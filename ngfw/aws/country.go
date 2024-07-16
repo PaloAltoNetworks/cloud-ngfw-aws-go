@@ -1,8 +1,8 @@
 package aws
 
 import (
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/country"
 	"context"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/country"
 	"net/http"
 )
 

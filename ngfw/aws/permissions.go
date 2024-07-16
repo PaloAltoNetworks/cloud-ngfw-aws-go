@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
+	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
 )
 
 const (
@@ -71,7 +71,8 @@ func (c *Client) RefreshFirewallAdminJwt(ctx context.Context) error {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 		},
-		Profile: *aws.String(c.Profile),
+		Profile:           *aws.String(c.Profile),
+		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
 		return err
@@ -151,7 +152,8 @@ func (c *Client) RefreshRulestackAdminJwt(ctx context.Context) error {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 		},
-		Profile: c.Profile,
+		Profile:           c.Profile,
+		SharedConfigState: session.SharedConfigEnable,
 	})
 
 	if err != nil {
@@ -232,7 +234,8 @@ func (c *Client) RefreshGlobalRulestackAdminJwt(ctx context.Context) error {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 		},
-		Profile: *aws.String(c.Profile),
+		Profile:           *aws.String(c.Profile),
+		SharedConfigState: session.SharedConfigEnable,
 	})
 
 	if err != nil {
@@ -310,7 +313,8 @@ func (c *Client) RefreshAccountAdminJwt(ctx context.Context) error {
 			Credentials: creds,
 			Region:      aws.String(c.MPRegion),
 		},
-		Profile: *aws.String(c.Profile),
+		Profile:           *aws.String(c.Profile),
+		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
 		return err
