@@ -1,8 +1,8 @@
 package aws
 
 import (
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
 	"context"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
 	"net/http"
 )
 

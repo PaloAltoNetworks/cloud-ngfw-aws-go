@@ -1,9 +1,9 @@
 package aws
 
 import (
+	"context"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
-	"context"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

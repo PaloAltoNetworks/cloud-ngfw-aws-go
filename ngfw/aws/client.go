@@ -1,11 +1,11 @@
 package aws
 
 import (
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,12 +16,12 @@ import (
 	"sync"
 	"time"
 
-	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sts"
+	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
 )
 
 // Client is the client.
