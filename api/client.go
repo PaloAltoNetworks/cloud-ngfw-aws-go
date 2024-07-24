@@ -113,6 +113,7 @@ type Client interface {
 	IsSyncModeEnabled(ctx context.Context) bool
 	GetResourceTimeout(ctx context.Context) int
 	GetMPRegion(ctx context.Context) string
+	GetProfile(ctx context.Context) string
 }
 
 type ApiClient struct {
@@ -147,6 +148,10 @@ func (c *ApiClient) GetResourceTimeout(ctx context2.Context) int {
 
 func (c *ApiClient) GetMPRegion(ctx context2.Context) string {
 	return c.client.GetMPRegion(ctx)
+}
+
+func (c *ApiClient) GetProfile(ctx context2.Context) string {
+	return c.client.GetProfile(ctx)
 }
 
 // sdk consumers instantiate APIClient using NewAPIClient() and invoke APIs under api directory

@@ -809,6 +809,10 @@ func (c *Client) GetMPRegion(ctx context.Context) string {
 	return c.MPRegion
 }
 
+func (c *Client) GetProfile(ctx context.Context) string {
+	return c.Profile
+}
+
 func (c *Client) GetResourceTimeout(ctx context.Context) int {
 	return c.ResourceTimeout
 }
