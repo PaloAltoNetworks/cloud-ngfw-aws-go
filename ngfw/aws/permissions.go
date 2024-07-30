@@ -337,7 +337,7 @@ func (c *Client) RefreshAccountAdminJwt(ctx context.Context) error {
 		log.Printf("(login) refreshing account admin JWT...")
 	}
 	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(arn),
+		RoleArn:         arn,
 		RoleSessionName: aws.String("sdk_session"),
 	})
 	if err != nil {
