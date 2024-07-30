@@ -321,16 +321,23 @@ func (c *Client) RefreshAccountAdminJwt(ctx context.Context) error {
 	}
 
 	svc := sts.New(sess)
+
 	// Get account admin JWT.
-	if c.AcctAdminArn == "" {
-		return err
+	var arn *string
+	if c.AcctAdminArn != "" {
+		arn = aws.String(c.AcctAdminArn)
+	} else if c.Arn != "" {
+		arn = aws.String(c.Arn)
+	} else {
+		log.Printf("err: No account admin arn provided")
+		return fmt.Errorf("No account admin arn provided")
 	}
 
 	if c.Logging&awsngfw.LogLogin == awsngfw.LogLogin {
 		log.Printf("(login) refreshing account admin JWT...")
 	}
 	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(c.AcctAdminArn),
+		RoleArn:         aws.String(arn),
 		RoleSessionName: aws.String("sdk_session"),
 	})
 	if err != nil {
