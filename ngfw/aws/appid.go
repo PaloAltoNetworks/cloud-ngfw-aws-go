@@ -10,13 +10,15 @@ import (
 // List returns a list of objects.
 func (c *Client) ListAppID(ctx context.Context, input appid.ListInput) (appid.ListOutput, error) {
 	c.Log(http.MethodGet, "list app-id versions")
-
+	path := Path{
+		V1Path: []string{"v1", "config", "appidversions"},
+	}
 	var ans appid.ListOutput
 	_, err := c.Communicate(
 		ctx,
 		PermissionRulestack,
 		http.MethodGet,
-		[]string{"v1", "config", "appidversions"},
+		path,
 		nil,
 		input,
 		&ans,
@@ -28,13 +30,15 @@ func (c *Client) ListAppID(ctx context.Context, input appid.ListInput) (appid.Li
 // ReadAppId returns information on the given app-id version.
 func (c *Client) ReadAppID(ctx context.Context, input appid.ReadInput) (appid.ReadOutput, error) {
 	c.Log(http.MethodGet, "describe app-id version: %s", input.Version)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "appidversions"},
+	}
 	var ans appid.ReadOutput
 	_, err := c.Communicate(
 		ctx,
 		PermissionRulestack,
 		http.MethodGet,
-		[]string{"v1", "config", "appidversions", input.Version},
+		path,
 		nil,
 		input,
 		&ans,
@@ -47,13 +51,15 @@ func (c *Client) ReadAppID(ctx context.Context, input appid.ReadInput) (appid.Re
 // app-id.
 func (c *Client) ReadApplication(ctx context.Context, version, app string) (appid.ReadApplicationOutput, error) {
 	c.Log(http.MethodGet, "describe app-id %q application: %s", version, app)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "appidversions", version, "appids", app},
+	}
 	var ans appid.ReadApplicationOutput
 	_, err := c.Communicate(
 		ctx,
 		PermissionRulestack,
 		http.MethodGet,
-		[]string{"v1", "config", "appidversions", version, "appids", app},
+		path,
 		nil,
 		nil,
 		&ans,

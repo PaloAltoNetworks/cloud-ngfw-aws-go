@@ -2,8 +2,9 @@ package aws
 
 import (
 	"context"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/fqdn"
 	"net/http"
+
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/fqdn"
 )
 
 // ListFqdn returns a fqdn.List of objects.
@@ -12,7 +13,9 @@ func (c *Client) ListFqdn(ctx context.Context, input fqdn.ListInput) (fqdn.ListO
 	if permErr != nil {
 		return fqdn.ListOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists"},
+	}
 	c.Log(http.MethodGet, "list rulestack %q fqdn fqdn.Lists", input.Rulestack)
 
 	var ans fqdn.ListOutput
@@ -20,7 +23,7 @@ func (c *Client) ListFqdn(ctx context.Context, input fqdn.ListInput) (fqdn.ListO
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists"},
+		path,
 		nil,
 		input,
 		&ans,
@@ -35,14 +38,16 @@ func (c *Client) CreateFqdn(ctx context.Context, input fqdn.Info) error {
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists"},
+	}
 	c.Log(http.MethodPost, "create rulestack %q fqdn fqdn.List: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists"},
+		path,
 		nil,
 		input,
 		nil,
@@ -57,7 +62,9 @@ func (c *Client) ReadFqdn(ctx context.Context, input fqdn.ReadInput) (fqdn.ReadO
 	if permErr != nil {
 		return fqdn.ReadOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists", input.Name},
+	}
 	c.Log(http.MethodGet, "describe rulestack %q fqdn fqdn.List: %s", input.Rulestack, input.Name)
 
 	var ans fqdn.ReadOutput
@@ -65,7 +72,7 @@ func (c *Client) ReadFqdn(ctx context.Context, input fqdn.ReadInput) (fqdn.ReadO
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists", input.Name},
+		path,
 		nil,
 		input,
 		&ans,
@@ -83,14 +90,16 @@ func (c *Client) UpdateFqdn(ctx context.Context, input fqdn.Info) error {
 
 	name := input.Name
 	input.Name = ""
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists", name},
+	}
 	c.Log(http.MethodPut, "updating rulestack %q fqdn fqdn.List: %s", input.Rulestack, name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPut,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists", name},
+		path,
 		nil,
 		input,
 		nil,
@@ -105,14 +114,16 @@ func (c *Client) DeleteFqdn(ctx context.Context, input fqdn.DeleteInput) error {
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists", input.Name},
+	}
 	c.Log(http.MethodDelete, "delete rulestack %q fqdn fqdn.List: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "fqdnlists", input.Name},
+		path,
 		nil,
 		nil,
 		nil,

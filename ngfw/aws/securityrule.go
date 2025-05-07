@@ -2,9 +2,10 @@ package aws
 
 import (
 	"context"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/security"
 	"net/http"
 	"strconv"
+
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/security"
 )
 
 // List returns a list of objects.
@@ -16,13 +17,15 @@ func (c *Client) ListSecurityRule(ctx context.Context, input security.ListInput)
 
 	stack, rlist := input.Rulestack, input.RuleList
 	c.Log(http.MethodGet, "list %s %q security rules", rlist, stack)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", stack, "rulelists", rlist},
+	}
 	var ans security.ListOutput
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist},
+		path,
 		nil,
 		input,
 		&ans,
@@ -40,14 +43,16 @@ func (c *Client) CreateSecurityRule(ctx context.Context, input security.Info) er
 
 	stack, rlist := input.Rulestack, input.RuleList
 	input.Rulestack, input.RuleList = "", ""
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", stack, "rulelists", rlist},
+	}
 	c.Log(http.MethodPost, "create %s security rule in %q: %s", rlist, stack, input.Entry.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist},
+		path,
 		nil,
 		input,
 		nil,
@@ -64,7 +69,9 @@ func (c *Client) ReadSecurityRule(ctx context.Context, input security.ReadInput)
 	}
 
 	stack, rlist, priority := input.Rulestack, input.RuleList, input.Priority
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
+	}
 	c.Log(http.MethodGet, "describe %s security rule in %q: %d", rlist, stack, priority)
 
 	var ans security.ReadOutput
@@ -72,7 +79,7 @@ func (c *Client) ReadSecurityRule(ctx context.Context, input security.ReadInput)
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
+		path,
 		nil,
 		input,
 		&ans,
@@ -92,12 +99,14 @@ func (c *Client) UpdateSecurityRule(ctx context.Context, input security.Info) er
 	input.Rulestack, input.RuleList, input.Priority = "", "", 0
 
 	c.Log(http.MethodPut, "updating %s security rule in %q: priority %d", rlist, stack, priority)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPut,
-		[]string{"v1", "config", "rulestacks", stack, "rulelists", rlist, "priorities", strconv.Itoa(priority)},
+		path,
 		nil,
 		input,
 		nil,
@@ -112,14 +121,16 @@ func (c *Client) DeleteSecurityRule(ctx context.Context, input security.DeleteIn
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "rulelists", input.RuleList, "priorities", strconv.Itoa(input.Priority)},
+	}
 	c.Log(http.MethodDelete, "delete %s security rule in %q: priority %d", input.RuleList, input.Rulestack, input.Priority)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "rulelists", input.RuleList, "priorities", strconv.Itoa(input.Priority)},
+		path,
 		nil,
 		nil,
 		nil,

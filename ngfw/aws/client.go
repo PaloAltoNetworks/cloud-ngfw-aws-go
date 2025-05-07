@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
@@ -28,6 +29,7 @@ import (
 type Client struct {
 	CognitoClient   *cognito.CognitoIdentityProvider
 	Tenant          string            `json:"tenant"`
+	TenantVersion   string            `json:"tenant_version"`
 	ExternalID      string            `json:"externalID"`
 	Region          string            `json:"region"`
 	MPRegion        string            `json:"mp_region"`
@@ -38,6 +40,7 @@ type Client struct {
 	AppClientSecret string            `json:"appClientSecret"`
 	Host            string            `json:"host"`
 	MPRegionHost    string            `json:"mp_region_host"`
+	V2Host          string            `json:"v2_host"`
 	AccessKey       string            `json:"access-key"`
 	Profile         string            `json:"profile"`
 	SyncMode        bool              `json:"sync_mode"`
@@ -47,6 +50,7 @@ type Client struct {
 	ResourceTimeout int               `json:"resource_timeout"`
 	Headers         map[string]string `json:"headers"`
 	Agent           string            `json:"agent"`
+	Origin          string            `json:"-"`
 
 	AuthType string `json:"-"`
 
@@ -91,6 +95,7 @@ type Client struct {
 	// Internal variables.
 	apiPrefix   string
 	mpApiPrefix string
+	v2ApiPrefix string
 
 	// Initialized during Setup().
 	HttpClient       *http.Client
@@ -183,6 +188,17 @@ func (c *Client) Setup() error {
 	}
 	if c.Host == "" {
 		c.Host = "api.us-east-1.aws.cloudngfw.paloaltonetworks.com"
+	}
+
+	if c.V2Host == "" {
+		if val := os.Getenv("CLOUDNGFWAWS_V2_HOST"); c.CheckEnvironment && val != "" {
+			c.V2Host = val
+		} else if json_client.V2Host != "" {
+			c.V2Host = json_client.V2Host
+		}
+	}
+	if c.V2Host == "" {
+		c.V2Host = "api.us-east-1.aws.cloudngfw.paloaltonetworks.com"
 	}
 
 	// Host.
@@ -443,6 +459,33 @@ func (c *Client) Setup() error {
 	// Configure the uri prefix.
 	c.apiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.Host)
 	c.mpApiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.MPRegionHost)
+	c.v2ApiPrefix = fmt.Sprintf("%s://%s", c.Protocol, c.V2Host)
+	return nil
+}
+
+// Path holds the V1 and V2 API paths for a given resource.
+type Path struct {
+	V1Path []string
+	V2Path []string
+}
+
+func setV2Path(c *Client, path []string, req *http.Request, queryParams url.Values) error {
+	var qp string
+	if queryParams == nil {
+		queryParams = url.Values{}
+	}
+	if !queryParams.Has("region") {
+		queryParams.Set("region", c.Region)
+	}
+	if len(queryParams) > 0 {
+		qp = fmt.Sprintf("?%s", queryParams.Encode())
+	}
+	u, err := url.Parse(fmt.Sprintf("%s/%s%s", c.v2ApiPrefix, strings.Join(path, "/"), qp))
+	if err != nil {
+		return err
+	}
+	req.URL = u
+	req.Host = u.Host
 	return nil
 }
 
@@ -472,7 +515,7 @@ that may have been present.  If this function got all the way to invoking the
 API and getting a response, then the error passed back will be a `api.Status`
 if an error was detected.
 */
-func (c *Client) Communicate(ctx context.Context, auth, method string, path []string, queryParams url.Values, input interface{}, output response.Failure, creds ...*sts.Credentials) (s []byte, e error) {
+func (c *Client) Communicate(ctx context.Context, auth, method string, path Path, queryParams url.Values, input interface{}, output response.Failure, creds ...*sts.Credentials) (s []byte, e error) {
 	// check if mocking is enabled(for unit test purposes)
 	if c.Mock {
 		log.Printf("mocking response.")
@@ -511,12 +554,12 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		apiPrefix = c.mpApiPrefix
 	}
 	if c.Logging&awsngfw.LogPath == awsngfw.LogPath {
-		log.Printf("path: %s/%s%s", apiPrefix, strings.Join(path, "/"), qp)
+		log.Printf("path: %s/%s%s", apiPrefix, strings.Join(path.V1Path, "/"), qp)
 	}
 	req, err := http.NewRequestWithContext(
 		ctx,
 		method,
-		fmt.Sprintf("%s/%s%s", apiPrefix, strings.Join(path, "/"), qp),
+		fmt.Sprintf("%s/%s%s", apiPrefix, strings.Join(path.V1Path, "/"), qp),
 		strings.NewReader(string(data)),
 	)
 	if err != nil {
@@ -611,6 +654,14 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 		return nil, fmt.Errorf("[tenant:%s][region:%s] Unknown permission required: %q",
 			c.ExternalID, c.MPRegion, auth)
 	}
+	api.Logger.Debugf("SDK Path: %v", path)
+
+	if c.TenantVersion == awsngfw.TenantVersionV2 && path.V2Path != nil {
+		if err := setV2Path(c, path.V2Path, req, queryParams); err != nil {
+			return nil, err
+		}
+	}
+	api.Logger.Debugf("SDK Request URL: %s", req.URL.String())
 
 	// Optional: v4 sign the request.
 	if len(creds) == 1 {
@@ -660,14 +711,18 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path []st
 
 	// Check for errors and unmarshal the response into the given interface.
 	if output != nil {
+		c.Log(method, "Unmarshaling response into: %T", output)
 		if err = json.Unmarshal(body, output); err != nil {
+			c.Log(method, "Error unmarshaling response: %v", err)
 			return body, err
 		}
 
 		if e2 := output.Failed(); e2 != nil {
+			c.Log(method, "Error unmarshaling response output: %v", e2)
 			return body, e2
 		}
 	} else {
+		c.Log(method, "generic response")
 		var generic Response
 		if err = json.Unmarshal(body, &generic); err != nil {
 			return body, err
@@ -809,10 +864,18 @@ func (c *Client) GetMPRegion(ctx context.Context) string {
 	return c.MPRegion
 }
 
+func (c *Client) GetRegion(ctx context.Context) string {
+	return c.Region
+}
+
 func (c *Client) GetProfile(ctx context.Context) string {
 	return c.Profile
 }
 
 func (c *Client) GetResourceTimeout(ctx context.Context) int {
 	return c.ResourceTimeout
+}
+
+func (c *Client) GetCloudProvider(ctx context.Context) string {
+	return awsngfw.CloudProviderAWS
 }
