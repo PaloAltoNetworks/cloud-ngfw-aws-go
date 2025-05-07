@@ -6,12 +6,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
 )
 
 const (
@@ -65,12 +66,15 @@ func (c *Client) ListRuleStack(ctx context.Context, input stack.ListInput) (stac
 		}
 	}
 
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks"},
+	}
 	var ans stack.ListOutput
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks"},
+		path,
 		uv,
 		nil,
 		&ans,
@@ -86,12 +90,15 @@ func (c *Client) CreateRuleStack(ctx context.Context, input stack.Info) error {
 		return permErr
 	}
 	c.Log(http.MethodPost, "create rulestack: %s", input.Name)
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks"},
+	}
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks"},
+		path,
 		nil,
 		input,
 		nil,
@@ -119,13 +126,15 @@ func (c *Client) ReadRuleStack(ctx context.Context, input stack.ReadInput) (stac
 			uv.Set("running", "true")
 		}
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name},
+	}
 	var ans stack.ReadOutput
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Name},
+		path,
 		uv,
 		nil,
 		&ans,
@@ -156,13 +165,15 @@ func (c *Client) ExportRuleStackXML(ctx context.Context, input stack.ReadInput) 
 			uv.Set("running", "true")
 		}
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "export"},
+	}
 	var ans stack.ExportRulestackXmlOutput
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Name, "export"},
+		path,
 		uv,
 		nil,
 		&ans,
@@ -203,12 +214,14 @@ func (c *Client) SaveRuleStackXML(ctx context.Context, input stack.SaveRulestack
 	}
 	input.RuleStackEntryXml.Xml = out
 	c.Log(http.MethodPost, "save rulestack xml: %s", input.Name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "xml"},
+	}
 	_, err = c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Name, "xml"},
+		path,
 		nil,
 		input,
 		nil,
@@ -230,12 +243,14 @@ func (c *Client) CreateSCMRuleStack(ctx context.Context, input stack.CreateSCMRu
 	}
 	input.RuleStackEntryXml.Xml = out
 	c.Log(http.MethodPost, "save rulestack xml: %s", input.Name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "scm"},
+	}
 	_, err = c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Name, "scm"},
+		path,
 		nil,
 		input,
 		nil,
@@ -255,12 +270,14 @@ func (c *Client) UpdateRuleStack(ctx context.Context, input stack.Info) error {
 	input.Name = ""
 
 	c.Log(http.MethodPut, "updating rulestack: %s", name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", name},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPut,
-		[]string{"v1", "config", "rulestacks", name},
+		path,
 		nil,
 		input,
 		nil,
@@ -277,12 +294,14 @@ func (c *Client) DeleteRuleStack(ctx context.Context, input stack.SimpleInput) e
 	}
 
 	c.Log(http.MethodDelete, "delete rulestack: %s", input.Name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Name},
+		path,
 		nil,
 		nil,
 		nil,
@@ -297,14 +316,16 @@ func (c *Client) CommitRuleStack(ctx context.Context, input stack.SimpleInput) e
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "commit"},
+	}
 	c.Log(http.MethodPost, "commit rulestack: %s", input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Name, "commit"},
+		path,
 		nil,
 		nil,
 		nil,
@@ -341,13 +362,15 @@ func (c *Client) CommitStatusRuleStack(ctx context.Context, input stack.SimpleIn
 	}
 
 	c.Log(http.MethodGet, "commit status for rulestack: %s", input.Name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "commit"},
+	}
 	var ans stack.CommitStatus
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Name, "commit"},
+		path,
 		nil,
 		nil,
 		&ans,
@@ -362,14 +385,16 @@ func (c *Client) RevertRuleStack(ctx context.Context, input stack.SimpleInput) e
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "revert"},
+	}
 	c.Log(http.MethodPost, "revert rulestack: %s", input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Name, "revert"},
+		path,
 		nil,
 		nil,
 		nil,
@@ -386,12 +411,14 @@ func (c *Client) ValidateRuleStack(ctx context.Context, input stack.SimpleInput)
 	}
 
 	c.Log(http.MethodPost, "validate rulestack: %s", input.Name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Name, "validate"},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Name, "validate"},
+		path,
 		nil,
 		nil,
 		nil,
@@ -419,13 +446,15 @@ func (c *Client) ListTagsRuleStack(ctx context.Context, input stack.ListTagsInpu
 			uv.Set("maxresults", strconv.Itoa(input.MaxResults))
 		}
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "tags"},
+	}
 	var ans stack.ListTagsOutput
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "tags"},
+		path,
 		uv,
 		nil,
 		&ans,
@@ -442,12 +471,14 @@ func (c *Client) AddTagsRuleStack(ctx context.Context, input stack.AddTagsInput)
 	}
 
 	c.Log(http.MethodPost, "adding tags to the rulestack: %s", input.Rulestack)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "tags"},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "tags"},
+		path,
 		nil,
 		input,
 		nil,
@@ -464,12 +495,14 @@ func (c *Client) RemoveTagsRuleStack(ctx context.Context, input stack.RemoveTags
 	}
 
 	c.Log(http.MethodDelete, "removing tags from rulestack: %s", input.Rulestack)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "tags"},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "tags"},
+		path,
 		nil,
 		input,
 		nil,

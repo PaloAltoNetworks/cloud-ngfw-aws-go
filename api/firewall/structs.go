@@ -19,6 +19,7 @@ type ListInput struct {
 	NextToken  string   `json:"NextToken,omitempty"`
 	VpcIds     []string `json:"VpcIds,omitempty"`
 	Describe   bool     `json:"-"`
+	Region     string   `json:"Region,omitempty"`
 }
 
 type ListOutput struct {
@@ -37,8 +38,10 @@ type ListOutputDetails struct {
 }
 
 type ListFirewall struct {
-	Name      string `json:"FirewallName"`
-	AccountId string `json:"AccountId"`
+	Name       string `json:"FirewallName"`
+	AccountId  string `json:"AccountId"`
+	FirewallId string `json:"FirewallId"`
+	Region     string `json:"Region,omitempty"`
 }
 
 type DescribeFirewall struct {
@@ -46,26 +49,103 @@ type DescribeFirewall struct {
 	AccountId string `json:"AccountId"`
 }
 
-// V1 create.
+type EgressNATConfig struct {
+	Enabled  bool               `json:"Enabled"`
+	Settings *EgressNATSettings `json:"Settings,omitempty"`
+}
+
+type EgressNATSettings struct {
+	IPPoolType string  `json:"IPPoolType"`
+	IPAMPoolId *string `json:"IPAMPoolId,omitempty"`
+}
+
+type UserIDCustomSubnetFilter struct {
+	Enabled          bool   `json:"Enabled"`
+	Name             string `json:"Name"`
+	DiscoveryInclude bool   `json:"DiscoveryInclude"`
+	NetworkAddress   string `json:"NetworkAddress"`
+}
+
+type UserIDConfig struct {
+	Enabled                     bool                       `json:"Enabled"`
+	CollectorName               string                     `json:"CollectorName,omitempty"`
+	SecretKeyARN                string                     `json:"SecretKeyARN,omitempty"`
+	Port                        int                        `json:"Port"`
+	CustomIncludeExcludeNetwork []UserIDCustomSubnetFilter `json:"CustomIncludeExcludeNetwork,omitempty"`
+	UserIDStatus                string                     `json:"UserIDStatus,omitempty"`
+	AgentName                   string                     `json:"AgentName"`
+}
+
+type PrivateAccessConfig struct {
+	Type       string `json:"Type"`
+	ResourceID string `json:"ResourceID"`
+}
 
 type Info struct {
-	Name                         string          `json:"FirewallName,omitempty"`
-	Id                           string          `json:"FirewallId,omitempty"`
-	AccountId                    string          `json:"AccountId,omitempty"`
-	VpcId                        string          `json:"VpcId,omitempty"`
-	AppIdVersion                 string          `json:"AppIdVersion,omitempty"`
-	Description                  string          `json:"Description,omitempty"`
-	Rulestack                    string          `json:"RuleStackName,omitempty"`
-	GlobalRulestack              string          `json:"GlobalRuleStackName,omitempty"`
-	MultiVpc                     bool            `json:"MultiVpc,omitempty"`
-	EndpointMode                 string          `json:"EndpointMode,omitempty"`
-	EndpointServiceName          string          `json:"EndpointServiceName,omitempty"`
-	AutomaticUpgradeAppIdVersion bool            `json:"AutomaticUpgradeAppIdVersion,omitempty"`
-	SubnetMappings               []SubnetMapping `json:"SubnetMappings,omitempty"`
-	LinkId                       string          `json:"LinkId,omitempty"`
-	LinkStatus                   string          `json:"LinkStatus,omitempty"`
-	Tags                         []tag.Details   `json:"Tags,omitempty"`
-	UpdateToken                  string          `json:"UpdateToken,omitempty"`
+	Name                         string               `json:"FirewallName,omitempty"`
+	Id                           string               `json:"FirewallId,omitempty"`
+	AccountId                    string               `json:"AccountId,omitempty"`
+	VpcId                        string               `json:"VpcId,omitempty"`
+	AppIdVersion                 string               `json:"AppIdVersion,omitempty"`
+	Description                  string               `json:"Description"`
+	Rulestack                    string               `json:"RuleStackName,omitempty"`
+	GlobalRulestack              string               `json:"GlobalRuleStackName,omitempty"`
+	MultiVpc                     bool                 `json:"MultiVpc,omitempty"`
+	EndpointMode                 string               `json:"EndpointMode,omitempty"`
+	EndpointServiceName          string               `json:"EndpointServiceName,omitempty"`
+	AutomaticUpgradeAppIdVersion bool                 `json:"AutomaticUpgradeAppIdVersion,omitempty"`
+	SubnetMappings               []SubnetMapping      `json:"SubnetMappings,omitempty"`
+	LinkId                       string               `json:"LinkId,omitempty"`
+	LinkStatus                   string               `json:"LinkStatus,omitempty"`
+	Tags                         []tag.Details        `json:"Tags,omitempty"`
+	UpdateToken                  string               `json:"UpdateToken,omitempty"`
+	ChangeProtection             []string             `json:"ChangeProtection"`
+	AllowListAccounts            []string             `json:"AllowListAccounts"`
+	EgressNAT                    *EgressNATConfig     `json:"EgressNAT,omitempty"`
+	PrivateAccess                *PrivateAccessConfig `json:"PrivateAccess,omitempty"`
+	UserID                       *UserIDConfig        `json:"UserID,omitempty"`
+	CustomerZoneIdList           []string             `json:"CustomerZoneIdList"`
+	Endpoints                    []EndpointConfig     `json:"Endpoints"`
+	DeploymentUpdateToken        string               `json:"DeploymentUpdateToken,omitempty"`
+}
+
+type UpdateResponse struct {
+	Info                  `json:",inline"`
+	UpdateToken           string `json:"UpdateToken,omitempty"`
+	FirewallId            string `json:"FirewallId"`
+	Region                string `json:"Region"`
+	DeploymentUpdateToken string `json:"DeploymentUpdateToken,omitempty"`
+}
+
+type UpdateOutput struct {
+	Response UpdateResponse  `json:"Response"`
+	Status   response.Status `json:"ResponseStatus"`
+}
+
+func (o UpdateOutput) Failed() *response.Status {
+	return o.Status.Failed()
+}
+
+type PrefixInfo struct {
+	PrivatePrefix PrefixConfig `json:"PrivatePrefix,omitempty"`
+	PublicPrefix  PrefixConfig `json:"PublicPrefix,omitempty"`
+}
+
+type PrefixConfig struct {
+	Cidrs []string `json:"Cidrs"`
+}
+
+type EndpointConfig struct {
+	EndpointId       string      `json:"EndpointId,omitempty"`
+	Prefixes         *PrefixInfo `json:"Prefixes,omitempty"`
+	EgressNATEnabled bool        `json:"EgressNATEnabled"`
+	ZoneId           string      `json:"ZoneId,omitempty"`
+	SubnetId         string      `json:"SubnetId,omitempty"`
+	RejectedReason   string      `json:"RejectedReason,omitempty"`
+	AccountId        string      `json:"AccountId,omitempty"`
+	VpcId            string      `json:"VpcId,omitempty"`
+	Status           string      `json:"Status,omitempty"`
+	Mode             string      `json:"Mode" enums:"ServiceManaged,CustomerManaged" validate:"required"`
 }
 
 type SubnetMapping struct {
@@ -156,8 +236,10 @@ type AddTagsInput struct {
 // V1 read.
 
 type ReadInput struct {
-	Name      string `json:"-"`
-	AccountId string `json:"AccountId,omitempty"`
+	Name        string `json:"-"`
+	AccountId   string `json:"AccountId,omitempty"`
+	FirewallId  string `json:"FirewallId,omitempty"`
+	UpdateToken string `json:"UpdateToken,omitempty"`
 }
 
 type ReadOutput struct {
@@ -178,14 +260,29 @@ type RuleStackCommitInfo struct {
 	CommitMessages []string `json:"CommitMessages,omitempty"`
 	CommitTS       string   `json:"CommitTS"`
 }
+
+type RuleStackCommitData struct {
+	CommitMessages []string `json:"CommitMessages"`
+	CommitTS       string   `json:"CommitTS"`
+}
+
+type PublicIP struct {
+	IPAddress string `json:"IPAddress"`
+	IPStatus  string `json:"IPStatus"`
+	IPSource  string `json:"IPSource"`
+}
+
 type FirewallStatus struct {
-	FirewallStatus            string              `json:"FirewallStatus,omitempty"`
-	FailureReason             string              `json:"FailureReason,omitempty"`
-	RulestackStatus           string              `json:"RuleStackStatus,omitempty"`
-	GlobalRuleStackStatus     string              `json:"GlobalRuleStackStatus,omitempty"`
-	RuleStackCommitInfo       RuleStackCommitInfo `json:"RuleStackCommitInfo,omitempty"`
-	GlobalRuleStackCommitInfo RuleStackCommitInfo `json:"GlobalRuleStackCommitInfo,omitempty"`
-	Attachments               []Attachment        `json:"Attachments,omitempty"`
+	FirewallStatus              string               `json:"FirewallStatus,omitempty"`
+	FailureReason               string               `json:"FailureReason,omitempty"`
+	RulestackStatus             string               `json:"RuleStackStatus,omitempty"`
+	GlobalRuleStackStatus       string               `json:"GlobalRuleStackStatus,omitempty"`
+	RuleStackCommitInfo         *RuleStackCommitData `json:"RuleStackCommitInfo,omitempty"`
+	GlobalRuleStackCommitInfo   *RuleStackCommitData `json:"GlobalRuleStackCommitInfo,omitempty"`
+	Attachments                 []Attachment         `json:"Attachments,omitempty"`
+	DeviceRuleStackCommitInfo   *RuleStackCommitData `json:"DeviceRuleStackCommitInfo,omitempty"`
+	PublicIPs                   []PublicIP           `json:"PublicIPs,omitempty"`
+	DeviceRuleStackCommitStatus string               `json:"DeviceRuleStackCommitStatus,omitempty"`
 }
 
 type Attachment struct {
@@ -198,8 +295,25 @@ type Attachment struct {
 // V1 delete.
 
 type DeleteInput struct {
-	Name      string `json:"-"`
-	AccountId string `json:"AccountId,omitempty"`
+	Name       string `json:"-"`
+	AccountId  string `json:"AccountId,omitempty"`
+	FirewallId string `json:"FirewallId,omitempty"`
+}
+
+type DeleteResponse struct {
+	Info           `json:",inline"`
+	FirewallId     string  `json:"FirewallId"`
+	FirewallStatus string  `json:"FirewallStatus"`
+	UpdateToken    *string `json:"UpdateToken,omitempty"`
+}
+
+type DeleteOutput struct {
+	Response DeleteResponse  `json:"Response,omitempty"`
+	Status   response.Status `json:"ResponseStatus"`
+}
+
+func (o DeleteOutput) Failed() *response.Status {
+	return o.Status.Failed()
 }
 
 // V1 list tags.
@@ -233,6 +347,7 @@ type AssociateInput struct {
 	Rulestack   string `json:"RuleStackName"`
 	AccountId   string `json:"AccountId"`
 	UpdateToken string `json:"UpdateToken,omitempty"`
+	FirewallId  string `json:"FirewallId"`
 }
 
 type AssociateOutput struct {
@@ -257,6 +372,7 @@ type DisAssociateInput struct {
 	Firewall    string `json:"-"`
 	AccountId   string `json:"AccountId"`
 	UpdateToken string `json:"UpdateToken,omitempty"`
+	FirewallId  string `json:"FirewallId,omitempty"`
 }
 
 type DisAssociateOutput struct {

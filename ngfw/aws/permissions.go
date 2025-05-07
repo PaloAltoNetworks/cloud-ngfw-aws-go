@@ -100,10 +100,12 @@ func (c *Client) RefreshFirewallAdminJwt(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"},
+	}
 	var ans authResponse
 	_, err = c.Communicate(
-		ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudfirewalladmin"}, nil, jwtReq, &ans, result.Credentials,
+		ctx, "", http.MethodGet, path, nil, jwtReq, &ans, result.Credentials,
 	)
 	if err != nil {
 		log.Printf("err:%+v", err)
@@ -111,6 +113,9 @@ func (c *Client) RefreshFirewallAdminJwt(ctx context.Context) error {
 	}
 
 	tNow := time.Now()
+	if err := c.SetTenantVersion(ans.Resp.Jwt); err != nil {
+		return err
+	}
 	c.FirewallAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
 	c.FirewallAdminJwt = ans.Resp.Jwt
 	c.FirewallSubscriptionKey = ans.Resp.SubscriptionKey
@@ -194,6 +199,9 @@ func (c *Client) RefreshRulestackAdminJwt(ctx context.Context) error {
 	}
 
 	tNow := time.Now()
+	if err := c.SetTenantVersion(ans.Resp.Jwt); err != nil {
+		return err
+	}
 	c.RulestackAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
 	c.RulestackAdminJwt = ans.Resp.Jwt
 	c.RulestackSubscriptionKey = ans.Resp.SubscriptionKey
@@ -265,15 +273,20 @@ func (c *Client) RefreshGlobalRulestackAdminJwt(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "mgmt", "tokens", "cloudglobalrulestackadmin"},
+	}
 	var ans authResponse
 	_, err = c.Communicate(
-		ctx, "", http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudglobalrulestackadmin"}, nil, jwtReq, &ans, result.Credentials,
+		ctx, "", http.MethodGet, path, nil, jwtReq, &ans, result.Credentials,
 	)
 	if err != nil {
 		return err
 	}
 	tNow := time.Now()
+	if err := c.SetTenantVersion(ans.Resp.Jwt); err != nil {
+		return err
+	}
 	c.GlobalRulestackAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
 	c.GlobalRulestackAdminJwt = ans.Resp.Jwt
 	c.GlobalRulestackSubscriptionKey = ans.Resp.SubscriptionKey
@@ -321,32 +334,27 @@ func (c *Client) RefreshAccountAdminJwt(ctx context.Context) error {
 	}
 
 	svc := sts.New(sess)
-
 	// Get account admin JWT.
-	var arn *string
-	if c.AcctAdminArn != "" {
-		arn = aws.String(c.AcctAdminArn)
-	} else if c.Arn != "" {
-		arn = aws.String(c.Arn)
-	} else {
-		log.Printf("err: No account admin arn provided")
-		return fmt.Errorf("No account admin arn provided")
+	if c.AcctAdminArn == "" {
+		return err
 	}
 
 	if c.Logging&awsngfw.LogLogin == awsngfw.LogLogin {
 		log.Printf("(login) refreshing account admin JWT...")
 	}
 	result, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         arn,
+		RoleArn:         aws.String(c.AcctAdminArn),
 		RoleSessionName: aws.String("sdk_session"),
 	})
 	if err != nil {
 		return err
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "mgmt", "tokens", "cloudaccountadmin"},
+	}
 	var ans authResponse
 	_, err = c.Communicate(
-		ctx, PermissionAccountAdminJWT, http.MethodGet, []string{"v1", "mgmt", "tokens", "cloudaccountadmin"}, nil, jwtReq, &ans, result.Credentials,
+		ctx, PermissionAccountAdminJWT, http.MethodGet, path, nil, jwtReq, &ans, result.Credentials,
 	)
 	if err != nil {
 		log.Printf("err:%+v", err)
@@ -354,6 +362,10 @@ func (c *Client) RefreshAccountAdminJwt(ctx context.Context) error {
 	}
 
 	tNow := time.Now()
+
+	if err := c.SetTenantVersion(ans.Resp.Jwt); err != nil {
+		return err
+	}
 	c.AccountAdminJwtExpTime = tNow.Add(time.Duration(ans.Resp.ExpiryTime) * time.Minute)
 	c.AccountAdminJwt = ans.Resp.Jwt
 	c.AccountAdminSubscriptionKey = ans.Resp.SubscriptionKey

@@ -25,11 +25,31 @@ func (s Status) Failed() *Status {
 }
 
 func (s Status) ObjectNotFound() bool {
-	return strings.HasSuffix(s.Reason, " does not exist")
+	return strings.Contains(s.Reason, " does not exist")
+}
+
+func (s Status) InvalidRequest() bool {
+	return strings.Contains(s.Reason, "invalid request")
 }
 
 func (s Status) Error() string {
 	return fmt.Sprintf("Error(%d): %s", s.Code, s.Reason)
+}
+
+func (s Status) TokenConflict() bool {
+	return strings.Contains(s.Reason, "please provide latest token")
+}
+
+func (s Status) LrsDoesNotExist() bool {
+	return strings.Contains(s.Reason, "rulestack does not exist")
+}
+
+func (s Status) LrsAssociateDoesNotExist() bool {
+	return strings.Contains(s.Reason, "rulestack association does not exist")
+}
+
+func (s Status) LrsResourceEntryMissing() bool {
+	return strings.Contains(s.Reason, "could not find an associated rulestack")
 }
 
 func IsResponseWithError(body []byte) error {

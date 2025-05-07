@@ -2,8 +2,9 @@ package aws
 
 import (
 	"context"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
 	"net/http"
+
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
 )
 
 // List returns a list of objects.
@@ -12,7 +13,9 @@ func (c *Client) ListFeed(ctx context.Context, input feed.ListInput) (feed.ListO
 	if permErr != nil {
 		return feed.ListOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "feeds"},
+	}
 	c.Log(http.MethodGet, "list rulestack %q intelligent feeds", input.Rulestack)
 
 	var ans feed.ListOutput
@@ -20,7 +23,7 @@ func (c *Client) ListFeed(ctx context.Context, input feed.ListInput) (feed.ListO
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "feeds"},
+		path,
 		nil,
 		input,
 		&ans,
@@ -35,14 +38,16 @@ func (c *Client) CreateFeed(ctx context.Context, input feed.Info) error {
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "feeds"},
+	}
 	c.Log(http.MethodPost, "create rulestack %q intelligent feed: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "feeds"},
+		path,
 		nil,
 		input,
 		nil,
@@ -57,7 +62,9 @@ func (c *Client) ReadFeed(ctx context.Context, input feed.ReadInput) (feed.ReadO
 	if permErr != nil {
 		return feed.ReadOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "feeds", input.Name},
+	}
 	c.Log(http.MethodGet, "describe rulestack %q intelligent feed: %s", input.Rulestack, input.Name)
 
 	var ans feed.ReadOutput
@@ -65,7 +72,7 @@ func (c *Client) ReadFeed(ctx context.Context, input feed.ReadInput) (feed.ReadO
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "feeds", input.Name},
+		path,
 		nil,
 		input,
 		&ans,
@@ -83,14 +90,16 @@ func (c *Client) UpdateFeed(ctx context.Context, input feed.Info) error {
 
 	name := input.Name
 	input.Name = ""
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "feeds", name},
+	}
 	c.Log(http.MethodPut, "updating rulestack %q intelligent feed: %s", input.Rulestack, name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPut,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "feeds", name},
+		path,
 		nil,
 		input,
 		nil,
@@ -105,14 +114,16 @@ func (c *Client) DeleteFeed(ctx context.Context, input feed.DeleteInput) error {
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "feeds", input.Name},
+	}
 	c.Log(http.MethodDelete, "delete rulestack %q intelligent feed: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "feeds", input.Name},
+		path,
 		nil,
 		nil,
 		nil,

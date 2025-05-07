@@ -13,7 +13,9 @@ func (c *Client) ListCertificate(ctx context.Context, input certificate.ListInpu
 	if permErr != nil {
 		return certificate.ListOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "certificates"},
+	}
 	c.Log(http.MethodGet, "certificate.List rulestack %q certificate objects", input.Rulestack)
 
 	var ans certificate.ListOutput
@@ -21,7 +23,7 @@ func (c *Client) ListCertificate(ctx context.Context, input certificate.ListInpu
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "certificates"},
+		path,
 		nil,
 		input,
 		&ans,
@@ -36,14 +38,16 @@ func (c *Client) CreateCertificate(ctx context.Context, input certificate.Info) 
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "certificates"},
+	}
 	c.Log(http.MethodPost, "create rulestack %q certificate object: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "certificates"},
+		path,
 		nil,
 		input,
 		nil,
@@ -58,7 +62,9 @@ func (c *Client) ReadCertificate(ctx context.Context, input certificate.ReadInpu
 	if permErr != nil {
 		return certificate.ReadOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "certificates", input.Name},
+	}
 	c.Log(http.MethodGet, "describe rulestack %q certificate object: %s", input.Rulestack, input.Name)
 
 	var ans certificate.ReadOutput
@@ -66,7 +72,7 @@ func (c *Client) ReadCertificate(ctx context.Context, input certificate.ReadInpu
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "certificates", input.Name},
+		path,
 		nil,
 		input,
 		&ans,
@@ -81,7 +87,9 @@ func (c *Client) UpdateCertificate(ctx context.Context, input certificate.Info) 
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "certificates", input.Name},
+	}
 	name := input.Name
 	input.Name = ""
 
@@ -91,7 +99,7 @@ func (c *Client) UpdateCertificate(ctx context.Context, input certificate.Info) 
 		ctx,
 		perm,
 		http.MethodPut,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "certificates", name},
+		path,
 		nil,
 		input,
 		nil,
@@ -106,14 +114,16 @@ func (c *Client) DeleteCertificate(ctx context.Context, input certificate.Delete
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "certificates", input.Name},
+	}
 	c.Log(http.MethodDelete, "delete rulestack %q certificate object: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "certificates", input.Name},
+		path,
 		nil,
 		nil,
 		nil,

@@ -2,8 +2,9 @@ package aws
 
 import (
 	"context"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/prefix"
 	"net/http"
+
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/prefix"
 )
 
 // List returns a list of objects.
@@ -12,7 +13,9 @@ func (c *Client) ListPrefixList(ctx context.Context, input prefix.ListInput) (pr
 	if permErr != nil {
 		return prefix.ListOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists"},
+	}
 	c.Log(http.MethodGet, "list rulestack %q prefix lists", input.Rulestack)
 
 	var ans prefix.ListOutput
@@ -20,7 +23,7 @@ func (c *Client) ListPrefixList(ctx context.Context, input prefix.ListInput) (pr
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists"},
+		path,
 		nil,
 		input,
 		&ans,
@@ -35,14 +38,16 @@ func (c *Client) CreatePrefixList(ctx context.Context, input prefix.Info) error 
 	if permErr != nil {
 		return permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists"},
+	}
 	c.Log(http.MethodPost, "create rulestack %q prefix list: %s", input.Rulestack, input.Name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPost,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists"},
+		path,
 		nil,
 		input,
 		nil,
@@ -57,7 +62,9 @@ func (c *Client) ReadPrefixList(ctx context.Context, input prefix.ReadInput) (pr
 	if permErr != nil {
 		return prefix.ReadOutput{}, permErr
 	}
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists", input.Name},
+	}
 	c.Log(http.MethodGet, "describe rulestack %q prefix list: %s", input.Rulestack, input.Name)
 
 	var ans prefix.ReadOutput
@@ -65,7 +72,7 @@ func (c *Client) ReadPrefixList(ctx context.Context, input prefix.ReadInput) (pr
 		ctx,
 		perm,
 		http.MethodGet,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists", input.Name},
+		path,
 		nil,
 		input,
 		&ans,
@@ -83,14 +90,16 @@ func (c *Client) UpdatePrefixList(ctx context.Context, input prefix.Info) error 
 
 	name := input.Name
 	input.Name = ""
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists", name},
+	}
 	c.Log(http.MethodPut, "updating rulestack %q prefix list: %s", input.Rulestack, name)
 
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodPut,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists", name},
+		path,
 		nil,
 		input,
 		nil,
@@ -107,12 +116,14 @@ func (c *Client) DeletePrefixList(ctx context.Context, input prefix.DeleteInput)
 	}
 
 	c.Log(http.MethodDelete, "delete rulestack %q prefix list: %s", input.Rulestack, input.Name)
-
+	path := Path{
+		V1Path: []string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists", input.Name},
+	}
 	_, err := c.Communicate(
 		ctx,
 		perm,
 		http.MethodDelete,
-		[]string{"v1", "config", "rulestacks", input.Rulestack, "prefixlists", input.Name},
+		path,
 		nil,
 		nil,
 		nil,

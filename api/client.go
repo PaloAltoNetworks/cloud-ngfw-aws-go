@@ -3,8 +3,9 @@ package api
 import (
 	"context"
 	context2 "context"
-	"go.uber.org/zap"
 	"log"
+
+	"go.uber.org/zap"
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/account"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/appid"
@@ -92,16 +93,15 @@ type Client interface {
 
 	ListFirewall(ctx context.Context, input firewall.ListInput) (firewall.ListOutput, error)
 	CreateFirewall(ctx context.Context, input firewall.Info) (firewall.CreateOutput, error)
-	ModifyFirewall(ctx context.Context, input firewall.Info) (bool, error)
+	CreateFirewallWithWait(ctx context.Context, input firewall.Info) (firewall.CreateOutput, error)
+	ModifyFirewall(ctx context.Context, input firewall.Info) (firewall.UpdateOutput, error)
 	ReadFirewall(ctx context.Context, input firewall.ReadInput) (firewall.ReadOutput, error)
-	UpdateFirewallDescription(ctx context.Context, input firewall.UpdateDescriptionInput) error
-	UpdateFirewallContentVersion(ctx context.Context, input firewall.UpdateContentVersionInput) error
-	UpdateFirewallSubnetMappings(ctx context.Context, input firewall.UpdateSubnetMappingsInput) error
-	UpdateFirewallRulestack(ctx context.Context, input firewall.UpdateRulestackInput) error
-	ListTagsForFirewall(ctx context.Context, input firewall.ListTagsInput) (firewall.ListTagsOutput, error)
-	RemoveTagsForFirewall(ctx context.Context, input firewall.RemoveTagsInput) error
-	AddTagsForFirewall(ctx context.Context, input firewall.AddTagsInput) error
-	DeleteFirewall(ctx context.Context, input firewall.DeleteInput) error
+	AssociateRulestack(ctx context.Context, input firewall.AssociateInput) (firewall.AssociateOutput, error)
+	AssociateRulestackWithWait(context.Context, firewall.AssociateInput) error
+	DisassociateRuleStack(ctx context.Context, input firewall.DisAssociateInput) (firewall.DisAssociateOutput, error)
+	DisassociateRuleStackWithWait(ctx context.Context, input firewall.DisAssociateInput) error
+	DeleteFirewall(ctx context.Context, input firewall.DeleteInput) (firewall.DeleteOutput, error)
+	DeleteFirewallWithWait(ctx context.Context, input firewall.DeleteInput) error
 	AssociateGlobalRuleStack(ctx context.Context, input firewall.AssociateInput) (firewall.AssociateOutput, error)
 	DisAssociateGlobalRuleStack(ctx context.Context, input firewall.DisAssociateInput) (firewall.DisAssociateOutput, error)
 	SetEndpoint(ctx context.Context, input EndPointInput) error
@@ -113,7 +113,10 @@ type Client interface {
 	IsSyncModeEnabled(ctx context.Context) bool
 	GetResourceTimeout(ctx context.Context) int
 	GetMPRegion(ctx context.Context) string
+	GetRegion(ctx context.Context) string
 	GetProfile(ctx context.Context) string
+	ModifyFirewallWithWait(ctx context.Context, input firewall.Info) error
+	GetCloudProvider(ctx context.Context) string
 }
 
 type ApiClient struct {
@@ -148,6 +151,10 @@ func (c *ApiClient) GetResourceTimeout(ctx context2.Context) int {
 
 func (c *ApiClient) GetMPRegion(ctx context2.Context) string {
 	return c.client.GetMPRegion(ctx)
+}
+
+func (c *ApiClient) GetRegion(ctx context2.Context) string {
+	return c.client.GetRegion(ctx)
 }
 
 func (c *ApiClient) GetProfile(ctx context2.Context) string {

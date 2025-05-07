@@ -9,25 +9,37 @@ type UpdateInput struct {
 }
 
 type Info struct {
-	AccountId                 string           `json:"AccountId,omitempty"`
-	Firewall                  string           `json:"FirewallName,omitempty"`
-	LogDestinations           []LogDestination `json:"LogDestinationConfigs"`
-	CloudWatchMetricNamespace string           `json:"CloudWatchMetricNamespace,omitempty"`
-	AdvancedThreatLog         bool             `json:"AdvancedThreatLog,omitempty"`
-	CloudWatchMetricsFields   []string         `json:"CloudWatchMetricsFields,omitempty"`
+	LogConfig                 *LogConfig         `json:"LogConfig,omitempty"`
+	CloudwatchMetrics         *CloudwatchMetrics `json:"CloudwatchMetrics,omitempty"`
+	UpdateToken               string             `json:"UpdateToken,omitempty"`
+	Region                    string             `json:"Region,omitempty"`
+	AccountId                 string             `json:"AccountId,omitempty"`
+	Firewall                  string             `json:"FirewallName,omitempty"`
+	FirewallId                string             `json:"FirewallId,omitempty"`
+	CloudWatchMetricNamespace string             `json:"CloudWatchMetricNamespace,omitempty"`
+	AdvancedThreatLog         bool               `json:"AdvancedThreatLog,omitempty"`
+	CloudWatchMetricsFields   []string           `json:"CloudWatchMetricsFields,omitempty"`
 }
 
-type LogDestination struct {
-	Destination     string `json:"LogDestination,omitempty"`
-	DestinationType string `json:"LogDestinationType,omitempty"`
-	LogType         string `json:"LogType,omitempty"`
+type LogConfig struct {
+	AccountId          string   `json:"AccountId,omitempty"`
+	LogDestination     string   `json:"LogDestination,omitempty"`
+	LogDestinationType string   `json:"LogDestinationType,omitempty"`
+	LogType            []string `json:"LogType,omitempty"`
+	RoleType           string   `json:"RoleType,omitempty"`
+}
+
+type CloudwatchMetrics struct {
+	Namespace string   `json:"CloudWatchMetricNamespace,omitempty"`
+	Metrics   []string `json:"CloudWatchMetricsFields,omitempty"`
+	AccountId string   `json:"AccountId,omitempty"`
 }
 
 // V1 read.
 
 type ReadInput struct {
-	Firewall  string `json:"-"`
-	AccountId string `json:"AccountId,omitempty"`
+	Firewall   string `json:"Firewall,omitempty"`
+	FirewallId string `json:"FirewallId"`
 }
 
 type ReadOutput struct {

@@ -217,6 +217,7 @@ func (o ExportRulestackXmlOutput) Failed() *response.Status {
 // v1 save rulestack xml
 type SaveRulestackXmlInput struct {
 	Name              string          `json:"-"`
+	FirewallId        string          `json:"-"`
 	Scope             string          `json:"-"`
 	RuleStackEntryXml XmlString       `json:"RuleStackEntryXml"`
 	ReadOnly          bool            `json:"ReadOnly,omitempty"`
@@ -246,9 +247,10 @@ type CreateSCMRuleStackInput struct {
 }
 
 type FirewallEntry struct {
-	Firewall  string `json:"Firewall"`
-	AccountId string `json:"AccountId,omitempty"`
-	ArmId     string `json:"ArmId,omitempty"`
+	Firewall   string `json:"Firewall"`
+	AccountId  string `json:"AccountId,omitempty"`
+	ArmId      string `json:"ArmId,omitempty"`
+	FirewallId string `json:"FirewallId,omitempty"`
 }
 
 type PushRulestackCMOutput struct {

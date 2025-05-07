@@ -20,3 +20,7 @@ const (
 	CloudProviderAWS   = "aws"
 	CloudProviderAzure = "azure"
 )
+
+const (
+	TenantVersionV2 = "V2"
+)
