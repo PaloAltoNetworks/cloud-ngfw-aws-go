@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/certificate"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/certificate"
 )
 
 // ListCertificate returns a certificate.List of objects.

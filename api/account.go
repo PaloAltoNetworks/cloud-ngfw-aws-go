@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/account"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/account"
 )
 
 func (c *ApiClient) CreateAccount(ctx context.Context, input account.CreateInput) (account.CreateOutput, error) {

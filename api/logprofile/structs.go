@@ -1,6 +1,6 @@
 package logprofile
 
-import "github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
+import "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 
 // V1 create / update.
 

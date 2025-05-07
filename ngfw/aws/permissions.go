@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
-	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
+	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2"
 )
 
 const (

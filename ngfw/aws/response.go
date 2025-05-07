@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 )
 
 /*
