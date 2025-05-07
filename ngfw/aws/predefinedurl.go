@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/predefinedurl"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/predefinedurl"
 )
 
 // List returns a list of objects.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/account"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/account"
 )
 
 // Create creates an object.

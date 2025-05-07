@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/stack"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/tag"
 )
 
 const (

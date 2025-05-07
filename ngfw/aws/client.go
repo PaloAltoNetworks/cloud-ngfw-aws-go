@@ -15,14 +15,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sts"
-	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
+	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 )
 
 // Client is the client.

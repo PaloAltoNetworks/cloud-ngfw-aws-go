@@ -7,19 +7,19 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/account"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/appid"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/certificate"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/country"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/firewall"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/fqdn"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/logprofile"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/predefinedurl"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/prefix"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/security"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/url"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/account"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/appid"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/certificate"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/country"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/feed"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/firewall"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/fqdn"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/logprofile"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/predefinedurl"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/prefix"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/security"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/stack"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/url"
 )
 
 // vendor specific ngfw clients(AWS, Azure) implement apiClient under ngfw directory

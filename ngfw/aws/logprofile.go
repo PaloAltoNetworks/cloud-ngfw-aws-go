@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/logprofile"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/logprofile"
 )
 
 // Read returns information on the given object.

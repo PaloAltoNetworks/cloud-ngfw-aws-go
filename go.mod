@@ -1,4 +1,4 @@
-module github.com/paloaltonetworks/cloud-ngfw-aws-go
+module github.com/paloaltonetworks/cloud-ngfw-aws-go/v2
 
 go 1.19
 

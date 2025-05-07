@@ -1,7 +1,7 @@
 Palo Alto Networks cloudngfw
 ============================
 
-[![GoDoc](https://godoc.org/github.com/PaloAltoNetworks/cloud-ngfw-aws-go?status.svg)](https://godoc.org/github.com/PaloAltoNetworks/cloud-ngfw-aws-go)
+[![GoDoc](https://godoc.org/github.com/paloaltonetworks/cloud-ngfw-aws-go/v2?status.svg)](https://godoc.org/github.com/paloaltonetworks/cloud-ngfw-aws-go/v2)
 
 Package cloudngfw is a golang SDK for interacting with the Cloud NGFW AWS API.
 
@@ -23,7 +23,7 @@ import (
     "context"
     "log"
 
-    "github.com/paloaltonetworks/cloud-ngfw-aws-go"
+    "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2"
 )
 
 func main() {

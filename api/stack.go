@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/stack"
 )
 
 const (

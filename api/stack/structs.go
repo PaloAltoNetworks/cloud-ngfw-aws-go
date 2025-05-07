@@ -5,15 +5,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/certificate"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/fqdn"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/predefinedurl"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/prefix"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/security"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/url"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/certificate"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/feed"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/fqdn"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/predefinedurl"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/prefix"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/security"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/tag"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/url"
 )
 
 type Rulestack struct {

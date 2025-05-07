@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/fqdn"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/fqdn"
 )
 
 /* Cloud vendor agnostic interface APIs to program NGFW

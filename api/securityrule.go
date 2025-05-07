@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/security"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/security"
 )
 
 func (c *ApiClient) CreateSecurityRule(ctx context.Context, f security.Info) error {

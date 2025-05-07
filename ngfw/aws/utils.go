@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/firewall"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/tag"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/firewall"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/tag"
 )
 
 func ConvertToUTCEpoch(timestamp string) (int64, error) {

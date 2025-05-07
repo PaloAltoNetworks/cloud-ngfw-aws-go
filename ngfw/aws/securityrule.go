@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/security"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/security"
 )
 
 // List returns a list of objects.

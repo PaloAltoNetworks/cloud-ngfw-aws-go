@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/appid"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/appid"
 )
 
 // List returns a list of objects.

@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/stack"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/stack"
 
 	"github.com/aws/aws-sdk-go/aws"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api"
 )
 
 const (

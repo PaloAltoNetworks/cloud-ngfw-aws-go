@@ -1,7 +1,7 @@
 package predefinedurl
 
 import (
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/response"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 )
 
 // v1 list url predefined categories.

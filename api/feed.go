@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/api/feed"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/feed"
 )
 
 /* Cloud vendor agnostic interface APIs to program NGFW
