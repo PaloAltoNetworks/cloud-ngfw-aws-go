@@ -2,11 +2,8 @@ package api
 
 import (
 	"context"
-	"os"
-	"strings"
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/firewall"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 )
 
 const (
@@ -61,34 +58,6 @@ func (c *ApiClient) ModifyFirewallWithWait(ctx context.Context, input firewall.I
 }
 
 func (c *ApiClient) ReadFirewall(ctx context.Context, input firewall.ReadInput) (firewall.ReadOutput, error) {
-	if c.Mock {
-		featureConfigs := make(map[string]firewall.FeatureConfig)
-		l := os.Getenv("MOCK_FEATURES")
-		s := strings.Split(l, ",")
-		for _, v := range s {
-			// Populate FeatureConfigs map based on feature type
-			switch strings.ToUpper(v) {
-			case "USERID":
-				featureConfigs["USERID"] = &firewall.UserId{}
-			case "LDAP":
-				featureConfigs["LDAP"] = &firewall.Ldap{}
-			case "DLP":
-				// DLP doesn't have a specific FeatureConfig type, but add a placeholder
-				featureConfigs["DLP"] = &firewall.Dlp{} // Use a dummy type for now
-			}
-		}
-		fwSwVersion := os.Getenv("MOCK_FW_SW_VERSION")
-		return firewall.ReadOutput{
-			Response: firewall.ReadResponse{
-				Firewall: firewall.Info{
-					SoftwareVersion: fwSwVersion,
-					FeatureConfigs:  featureConfigs,
-				},
-			},
-			Status: response.Status{},
-		}, nil
-	}
-
 	out, err := c.client.ReadFirewall(ctx, input)
 	if err != nil {
 		return firewall.ReadOutput{}, err
