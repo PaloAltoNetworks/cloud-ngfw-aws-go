@@ -7,7 +7,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.331
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/stretchr/testify v1.8.1
-	github.com/wamuir/go-xslt v0.1.4
 	go.uber.org/zap v1.25.0
 )
 
