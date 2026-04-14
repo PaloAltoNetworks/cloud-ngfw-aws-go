@@ -12,10 +12,10 @@ import (
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/stack"
 
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api"
 	"github.com/aws/aws-sdk-go/aws"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api"
 )
 
 const (
@@ -158,6 +158,46 @@ func (c *Client) SetupUsingCreds(ctx context.Context, info AuthInfo) error {
 	c.Region = info.Region
 	c.AuthURL = info.AuthURL
 	return nil
+}
+
+// Reads cloud ngfw service token for panorama integration
+func (c *Client) GetCloudNGFWServiceToken(ctx context.Context, info stack.AuthInput) (stack.AuthOutput, error) {
+	// we don't expect externalID to change per tenant. Hence it's cached in the client.
+	// build the request
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("%s/%s?externalid=%s", c.AuthURL, PanoramaEndpoint, c.ExternalID),
+		nil,
+	)
+	if err != nil {
+		api.Logger.Errorf("[tenant:%s][region:%s] err:%+v", c.ExternalID, c.Region, err)
+		return stack.AuthOutput{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", c.Agent)
+
+	// invoke the API
+	api.Logger.Debugf("[tenant:%s][region:%s] req:%+v authURL:%s", c.ExternalID, c.Region, req)
+	resp, err := c.SecureHttpClient.Do(req)
+	if err != nil {
+		api.Logger.Errorf(
+			"[tenant:%s][region:%s] err:%+v", c.ExternalID, c.Region, err)
+		return stack.AuthOutput{}, err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return stack.AuthOutput{}, fmt.Errorf(string(body))
+	}
+	var output stack.AuthOutput
+	if err = json.Unmarshal(body, &output); err != nil {
+		return stack.AuthOutput{}, err
+	}
+	if e2 := output.Failed(); e2 != nil {
+		return stack.AuthOutput{}, err
+	}
+	return output, err
 }
 
 // RefreshJwts refreshes all JWTs and stores them for future API calls.

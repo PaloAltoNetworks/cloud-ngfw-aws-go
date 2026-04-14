@@ -95,6 +95,7 @@ type Client interface {
 	CreateFirewall(ctx context.Context, input firewall.Info) (firewall.CreateOutput, error)
 	CreateFirewallWithWait(ctx context.Context, input firewall.Info) (firewall.CreateOutput, error)
 	ModifyFirewall(ctx context.Context, input firewall.Info) (firewall.UpdateOutput, error)
+	ModifyFirewallV1(ctx context.Context, input firewall.Info) error
 	ReadFirewall(ctx context.Context, input firewall.ReadInput) (firewall.ReadOutput, error)
 	AssociateRulestack(ctx context.Context, input firewall.AssociateInput) (firewall.AssociateOutput, error)
 	AssociateRulestackWithWait(context.Context, firewall.AssociateInput) error
@@ -114,6 +115,7 @@ type Client interface {
 	GetResourceTimeout(ctx context.Context) int
 	GetMPRegion(ctx context.Context) string
 	GetRegion(ctx context.Context) string
+	GetApiPrefix(ctx context.Context) string
 	GetProfile(ctx context.Context) string
 	ModifyFirewallWithWait(ctx context.Context, input firewall.Info) error
 	GetCloudProvider(ctx context.Context) string
@@ -124,6 +126,7 @@ type ApiClient struct {
 	ctx       context.Context
 	maxGortns int
 	XSLPath   string
+	Mock      bool
 }
 
 type EndPointInput struct {
@@ -157,6 +160,10 @@ func (c *ApiClient) GetRegion(ctx context2.Context) string {
 	return c.client.GetRegion(ctx)
 }
 
+func (c *ApiClient) GetApiPrefix(ctx context2.Context) string {
+	return c.client.GetApiPrefix(ctx)
+}
+
 func (c *ApiClient) GetProfile(ctx context2.Context) string {
 	return c.client.GetProfile(ctx)
 }
@@ -166,5 +173,5 @@ func NewAPIClient(client Client, ctx context.Context, maxGortns int, XSLPath str
 	if !mock && Logger == nil {
 		log.Fatalf("Initialize logger using SetLogger()")
 	}
-	return &ApiClient{client: client, ctx: ctx, maxGortns: maxGortns, XSLPath: XSLPath}
+	return &ApiClient{client: client, ctx: ctx, maxGortns: maxGortns, XSLPath: XSLPath, Mock: mock}
 }

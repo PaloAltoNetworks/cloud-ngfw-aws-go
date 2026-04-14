@@ -1,9 +1,19 @@
 package firewall
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/logprofile"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/tag"
+)
+
+const (
+	FEATURE_ENABLED  = "Enabled"
+	FEATURE_DISABLED = "Disabled"
+	FEATURE_USERID   = "UserID"
+	FEATURE_DLP      = "DLP"
 )
 
 type Firewall struct {
@@ -82,31 +92,77 @@ type PrivateAccessConfig struct {
 }
 
 type Info struct {
-	Name                         string               `json:"FirewallName,omitempty"`
-	Id                           string               `json:"FirewallId,omitempty"`
-	AccountId                    string               `json:"AccountId,omitempty"`
-	VpcId                        string               `json:"VpcId,omitempty"`
-	AppIdVersion                 string               `json:"AppIdVersion,omitempty"`
-	Description                  string               `json:"Description"`
-	Rulestack                    string               `json:"RuleStackName,omitempty"`
-	GlobalRulestack              string               `json:"GlobalRuleStackName,omitempty"`
-	MultiVpc                     bool                 `json:"MultiVpc,omitempty"`
-	EndpointMode                 string               `json:"EndpointMode,omitempty"`
-	EndpointServiceName          string               `json:"EndpointServiceName,omitempty"`
-	AutomaticUpgradeAppIdVersion bool                 `json:"AutomaticUpgradeAppIdVersion,omitempty"`
-	SubnetMappings               []SubnetMapping      `json:"SubnetMappings,omitempty"`
-	LinkId                       string               `json:"LinkId,omitempty"`
-	LinkStatus                   string               `json:"LinkStatus,omitempty"`
-	Tags                         []tag.Details        `json:"Tags,omitempty"`
-	UpdateToken                  string               `json:"UpdateToken,omitempty"`
-	ChangeProtection             []string             `json:"ChangeProtection"`
-	AllowListAccounts            []string             `json:"AllowListAccounts"`
-	EgressNAT                    *EgressNATConfig     `json:"EgressNAT,omitempty"`
-	PrivateAccess                *PrivateAccessConfig `json:"PrivateAccess,omitempty"`
-	UserID                       *UserIDConfig        `json:"UserID,omitempty"`
-	CustomerZoneIdList           []string             `json:"CustomerZoneIdList"`
-	Endpoints                    []EndpointConfig     `json:"Endpoints"`
-	DeploymentUpdateToken        string               `json:"DeploymentUpdateToken,omitempty"`
+	Name                         string                   `json:"FirewallName,omitempty"`
+	Id                           string                   `json:"FirewallId,omitempty"`
+	AccountId                    string                   `json:"AccountId,omitempty"`
+	VpcId                        string                   `json:"VpcId,omitempty"`
+	AppIdVersion                 string                   `json:"AppIdVersion,omitempty"`
+	Description                  string                   `json:"Description"`
+	Rulestack                    string                   `json:"RuleStackName,omitempty"`
+	GlobalRulestack              string                   `json:"GlobalRuleStackName,omitempty"`
+	MultiVpc                     bool                     `json:"MultiVpc,omitempty"`
+	EndpointMode                 string                   `json:"EndpointMode,omitempty"`
+	EndpointServiceName          string                   `json:"EndpointServiceName,omitempty"`
+	SoftwareVersion              string                   `json:"SoftwareVersion,omitempty"`
+	AutomaticUpgradeAppIdVersion bool                     `json:"AutomaticUpgradeAppIdVersion,omitempty"`
+	SubnetMappings               []SubnetMapping          `json:"SubnetMappings,omitempty"`
+	LinkId                       string                   `json:"LinkId,omitempty"`
+	LinkStatus                   string                   `json:"LinkStatus,omitempty"`
+	Tags                         []tag.Details            `json:"Tags,omitempty"`
+	UpdateToken                  string                   `json:"UpdateToken,omitempty"`
+	ChangeProtection             []string                 `json:"ChangeProtection"`
+	AllowListAccounts            []string                 `json:"AllowListAccounts"`
+	EgressNAT                    *EgressNATConfig         `json:"EgressNAT,omitempty"`
+	PrivateAccess                *PrivateAccessConfig     `json:"PrivateAccess,omitempty"`
+	UserID                       *UserIDConfig            `json:"UserID,omitempty"`
+	CustomerZoneIdList           []string                 `json:"CustomerZoneIdList"`
+	Endpoints                    []EndpointConfig         `json:"Endpoints"`
+	Tier                         string                   `json:"Tier,omitempty"`
+	DeploymentUpdateToken        string                   `json:"DeploymentUpdateToken,omitempty"`
+	SecurityZones                []EndpointConfig         `json:"SecurityZones"`
+	Features                     Features                 `json:"Features"`
+	FeatureConfigs               map[string]FeatureConfig `json:"FeatureConfigs,omitempty"`
+}
+
+// UnmarshalJSON implements custom unmarshaling for Info struct to handle FeatureConfigs
+func (info *Info) UnmarshalJSON(data []byte) error {
+	// Define an alias to avoid recursion during unmarshaling
+	type Alias Info
+
+	// Create a temporary struct that uses json.RawMessage for FeatureConfigs
+	aux := &struct {
+		FeatureConfigsRaw map[string]json.RawMessage `json:"FeatureConfigs,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(info),
+	}
+
+	// Unmarshal into the auxiliary struct
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Process FeatureConfigs if present
+	if len(aux.FeatureConfigsRaw) > 0 {
+		info.FeatureConfigs = make(map[string]FeatureConfig)
+
+		for featureTypeStr, rawConfig := range aux.FeatureConfigsRaw {
+			// Get the appropriate concrete type based on the feature type key
+			featureConfig, err := GetFeatureByType(FeatureType(featureTypeStr))
+			if err != nil {
+				return fmt.Errorf("unknown feature type %s: %w", featureTypeStr, err)
+			}
+
+			// Unmarshal the raw JSON into the concrete type
+			if err := json.Unmarshal(rawConfig, featureConfig); err != nil {
+				return fmt.Errorf("failed to unmarshal feature config for %s: %w", featureTypeStr, err)
+			}
+
+			info.FeatureConfigs[featureTypeStr] = featureConfig
+		}
+	}
+
+	return nil
 }
 
 type UpdateResponse struct {
@@ -208,7 +264,19 @@ type UpdateContentVersionInput struct {
 	UpdateToken                  string `json:"UpdateToken,omitempty"`
 }
 
-// V1 update rulestack.
+type Features struct {
+	EgressNat     *EgressNATConfig     `json:"EgressNAT,omitempty"`
+	SecurityZones []EndpointConfig     `json:"SecurityZones,omitempty"`
+	PrivateAccess *PrivateAccessConfig `json:"PrivateAccess,omitempty"`
+	UserId        *UserIDConfig        `json:"UserID,omitempty"`
+}
+
+type UpdateFeaturesAPIInput struct {
+	FirewallName string   `json:"FirewallName" validate:"required"`
+	AccountId    string   `json:"AccountId" validate:"omitempty,AccountId" minLength:"12" maxLength:"12"`
+	UpdateToken  *string  `json:"UpdateToken,omitempty" validate:"omitempty,min=1,max=1024" minLength:"1" maxLength:"1024"`
+	Features     Features `json:"Features,omitempty"`
+}
 
 type UpdateRulestackInput struct {
 	Firewall    string `json:"-"`
@@ -236,10 +304,11 @@ type AddTagsInput struct {
 // V1 read.
 
 type ReadInput struct {
-	Name        string `json:"-"`
-	AccountId   string `json:"AccountId,omitempty"`
-	FirewallId  string `json:"FirewallId,omitempty"`
-	UpdateToken string `json:"UpdateToken,omitempty"`
+	Name          string `json:"-"`
+	AccountId     string `json:"AccountId,omitempty"`
+	FirewallId    string `json:"FirewallId,omitempty"`
+	UpdateToken   string `json:"UpdateToken,omitempty"`
+	FeatureConfig bool   `json:"-"`
 }
 
 type ReadOutput struct {

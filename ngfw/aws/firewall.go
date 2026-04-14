@@ -13,14 +13,25 @@ import (
 	"strings"
 	"time"
 
+	cloudngfwgosdk "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/firewall"
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/tag"
 )
 
 type updateFirewall struct {
 	GeneralUpdate bool
 	DrsCommit     bool
 	RsCommit      bool
+}
+
+func getSchemaVersion(ctx context.Context) string {
+	schemaVersion := cloudngfwgosdk.SchemaVersionV2
+	v := ctx.Value("SchemaVersion")
+	if v != nil {
+		schemaVersion = v.(string)
+	}
+	return schemaVersion
 }
 
 // List returns a list of firewalls.
@@ -98,6 +109,348 @@ func (c *Client) CreateFirewallWithWait(ctx context.Context, input firewall.Info
 	return ans, nil
 }
 
+func (c *Client) ListTagsForFirewall(ctx context.Context, input firewall.ListTagsInput) (firewall.ListTagsOutput, error) {
+	c.Log(http.MethodGet, "list tags for firewall: %s", input.Firewall)
+
+	var uv url.Values
+	if input.AccountId != "" || input.NextToken != "" || input.MaxResults != 0 {
+		uv = url.Values{}
+		if input.AccountId != "" {
+			uv.Set("accountid", input.AccountId)
+		}
+		if input.NextToken != "" {
+			uv.Set("nexttoken", input.NextToken)
+		}
+		if input.MaxResults != 0 {
+			uv.Set("maxresults", strconv.Itoa(input.MaxResults))
+		}
+	}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "tags"},
+	}
+	var ans firewall.ListTagsOutput
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodGet,
+		path,
+		uv,
+		nil,
+		&ans,
+	)
+
+	return ans, err
+}
+
+// UpdateDescription updates the description of the firewall.
+func (c *Client) UpdateFirewallDescription(ctx context.Context, input firewall.UpdateDescriptionInput) error {
+	c.Log(http.MethodPut, "updating firewall description: %s", input.Firewall)
+	uv := url.Values{}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "description"},
+	}
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodPut,
+		path,
+		uv,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+// UpdateSubnetMappings updates the subnet mappings of the firewall.
+func (c *Client) UpdateFirewallSubnetMappings(ctx context.Context, input firewall.UpdateSubnetMappingsInput) error {
+	c.Log(http.MethodPut, "updating firewall subnet mappings: %s", input.Firewall)
+	uv := url.Values{}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "subnets"},
+	}
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodPut,
+		path,
+		uv,
+		input,
+		nil,
+	)
+	return err
+}
+
+func (c *Client) RemoveTagsForFirewall(ctx context.Context, input firewall.RemoveTagsInput) error {
+	c.Log(http.MethodDelete, "removing tags from firewall: %s", input.Firewall)
+	uv := url.Values{}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "tags"},
+	}
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodDelete,
+		path,
+		uv,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+// AddTags adds the given tags to the firewall.
+func (c *Client) AddTagsForFirewall(ctx context.Context, input firewall.AddTagsInput) error {
+	c.Log(http.MethodPost, "adding tags to the firewall: %s", input.Firewall)
+	uv := url.Values{}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "tags"},
+	}
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodPost,
+		path,
+		uv,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+// UpdateRulestack updates the rulestack for the given firewall.
+func (c *Client) UpdateFirewallRulestackV1(ctx context.Context, input firewall.UpdateRulestackInput) error {
+	c.Log(http.MethodPost, "updating firewall rulestack: %s", input.Firewall)
+	uv := url.Values{}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "rulestack"},
+	}
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodPost,
+		path,
+		uv,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+func (c *Client) UpdateFirewallFeatures(ctx context.Context, input firewall.UpdateFeaturesAPIInput) error {
+	c.Log(http.MethodPut, "updating firewall features: %+v", input.Features)
+	uv := url.Values{}
+	uv.Set("v1route", "true")
+	path := Path{
+		V1Path: []string{"v1", "config", "ngfirewalls", input.FirewallName, "features"},
+	}
+	_, err := c.Communicate(
+		ctx,
+		PermissionFirewall,
+		http.MethodPut,
+		path,
+		uv,
+		input,
+		nil,
+	)
+
+	return err
+}
+
+func (c *Client) ModifyFirewallV1(ctx context.Context, input firewall.Info) error {
+	ans, err := c.ReadFirewall(ctx, firewall.ReadInput{Name: input.Name, AccountId: input.AccountId})
+	if err != nil {
+		return err
+	}
+	cur := ans.Response.Firewall
+	curTags := cur.Tags
+
+	// No idea if this is needed or not, but do it for now just to be safe.
+	tin := firewall.ListTagsInput{
+		Firewall:   input.Name,
+		AccountId:  input.AccountId,
+		MaxResults: 100,
+	}
+	tans, err := c.ListTagsForFirewall(ctx, tin)
+	if err != nil {
+		return err
+	}
+	curTags = tans.Response.Tags
+
+	// Update description.
+	if input.Description != cur.Description {
+		v := firewall.UpdateDescriptionInput{
+			Firewall:    input.Name,
+			AccountId:   input.AccountId,
+			Description: input.Description,
+		}
+		if err = c.UpdateFirewallDescription(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("current subnet mappings: %+v", cur.SubnetMappings)
+	log.Printf("input subnet mappings: %+v", input.SubnetMappings)
+	// Update subnet mappings.
+	assoc := make([]firewall.SubnetMapping, 0, len(input.SubnetMappings))
+	disassoc := make([]firewall.SubnetMapping, 0, len(cur.SubnetMappings))
+	for _, x := range input.SubnetMappings {
+		found := false
+		for _, y := range cur.SubnetMappings {
+			if x.SubnetId != "" && x.SubnetId == y.SubnetId {
+				found = true
+			} else if x.AvailabilityZone != "" && x.AvailabilityZone == y.AvailabilityZone {
+				found = true
+			}
+			if found {
+				break
+			}
+		}
+
+		if !found {
+			assoc = append(assoc, firewall.SubnetMapping{
+				SubnetId:         x.SubnetId,
+				AvailabilityZone: x.AvailabilityZone,
+			})
+		}
+	}
+	if len(assoc) == 0 {
+		assoc = nil
+	}
+	for _, x := range cur.SubnetMappings {
+		found := false
+		for _, y := range input.SubnetMappings {
+			if x.SubnetId != "" && x.SubnetId == y.SubnetId {
+				found = true
+			} else if x.AvailabilityZone != "" && x.AvailabilityZone == y.AvailabilityZone {
+				found = true
+			}
+			if found {
+				break
+			}
+		}
+
+		if !found {
+			disassoc = append(assoc, firewall.SubnetMapping{
+				SubnetId:         x.SubnetId,
+				AvailabilityZone: x.AvailabilityZone,
+			})
+		}
+	}
+	if len(disassoc) == 0 {
+		disassoc = nil
+	}
+	if assoc != nil || disassoc != nil {
+		v := firewall.UpdateSubnetMappingsInput{
+			Firewall:                   input.Name,
+			AccountId:                  input.AccountId,
+			AssociateSubnetMappings:    assoc,
+			DisassociateSubnetMappings: disassoc,
+		}
+		if err = c.UpdateFirewallSubnetMappings(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	// Update rulestack.
+	if input.Rulestack != cur.Rulestack {
+		v := firewall.UpdateRulestackInput{
+			Firewall:  input.Name,
+			AccountId: input.AccountId,
+			Rulestack: input.Rulestack,
+		}
+		if err = c.UpdateFirewallRulestackV1(ctx, v); err != nil {
+			return err
+		}
+	}
+
+	// Update tags.
+	addTags := make([]tag.Details, 0, len(input.Tags))
+	rmTags := make([]string, 0, len(curTags))
+	for _, x := range input.Tags {
+		ok := false
+		for _, y := range curTags {
+			if x.Key == y.Key {
+				if x.Value == y.Value {
+					ok = true
+				} else {
+					rmTags = append(rmTags, x.Key)
+				}
+				break
+			}
+		}
+		if !ok {
+			addTags = append(addTags, x)
+		}
+	}
+	for _, x := range curTags {
+		found := false
+		for _, y := range input.Tags {
+			if x.Key == y.Key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			rmTags = append(rmTags, x.Key)
+		}
+	}
+	// Due to the 50 tag limit, removing tags must happen before adding tags.
+	if len(rmTags) > 0 {
+		v := firewall.RemoveTagsInput{
+			Firewall:  input.Name,
+			AccountId: input.AccountId,
+			Tags:      rmTags,
+		}
+		if err = c.RemoveTagsForFirewall(ctx, v); err != nil {
+			return err
+		}
+	}
+	if len(addTags) > 0 {
+		v := firewall.AddTagsInput{
+			Firewall:  input.Name,
+			AccountId: input.AccountId,
+			Tags:      addTags,
+		}
+		if err = c.AddTagsForFirewall(ctx, v); err != nil {
+			return err
+		}
+	}
+	if c.endpointsUpdate(input.SecurityZones, ans.Response.Firewall.SecurityZones) || c.featureUpdate(input, ans.Response.Firewall) {
+		c.Log(http.MethodPatch, "Firewall update required for endpoints or features")
+		i := firewall.UpdateFeaturesAPIInput{
+			FirewallName: input.Name,
+			AccountId:    input.AccountId,
+			UpdateToken:  &input.UpdateToken,
+		}
+		if input.EgressNAT != nil {
+			i.Features.EgressNat = input.EgressNAT
+		}
+		if input.EgressNAT != nil {
+			i.Features.UserId = input.UserID
+		}
+		if input.EgressNAT != nil {
+			i.Features.PrivateAccess = input.PrivateAccess
+		}
+		if input.SecurityZones != nil {
+			i.Features.SecurityZones = input.SecurityZones
+		}
+		if err := c.UpdateFirewallFeatures(ctx, i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *Client) ModifyFirewall(ctx context.Context, input firewall.Info) (firewall.UpdateOutput, error) {
 	c.Log(http.MethodPut, "updating firewall: %s", input.Id)
 	//var ans firewall.CreateOutput
@@ -149,16 +502,6 @@ func deepDiff(list1, list2 []firewall.UserIDCustomSubnetFilter) bool {
 	return false
 }
 
-func (c *Client) firewallGenerateUpdate(input, info firewall.Info) bool {
-	if input.UpdateToken != info.UpdateToken {
-		return true
-	}
-	if input.DeploymentUpdateToken != info.DeploymentUpdateToken {
-		return true
-	}
-	return false
-}
-
 func (c *Client) endpointsUpdate(inputEps, respEps []firewall.EndpointConfig) bool {
 	inputIdMap := EpIdMap(inputEps)
 	respIdMap := EpIdMap(respEps)
@@ -182,6 +525,8 @@ func (c *Client) endpointsUpdate(inputEps, respEps []firewall.EndpointConfig) bo
 			c.Log(http.MethodPatch, "Endpoint %s has different prefixes", ep.EndpointId)
 			return true
 		}
+		sort.Strings(ep.Prefixes.PrivatePrefix.Cidrs)
+		sort.Strings(respEp.Prefixes.PrivatePrefix.Cidrs)
 		if !slices.Equal(ep.Prefixes.PrivatePrefix.Cidrs, respEp.Prefixes.PrivatePrefix.Cidrs) {
 			c.Log(http.MethodPatch, "Endpoint %s has different private prefixes", ep.EndpointId)
 			return true
@@ -334,11 +679,24 @@ func (c *Client) ReadAndModifyFirewall(ctx context.Context, input firewall.Info)
 // Read returns information on the given object.
 func (c *Client) ReadFirewall(ctx context.Context, input firewall.ReadInput) (firewall.ReadOutput, error) {
 	name := input.Name
+	schemaVersion := getSchemaVersion(ctx)
+	fwId := input.FirewallId
 	uv := url.Values{}
+	if schemaVersion == cloudngfwgosdk.SchemaVersionV1 {
+		fwId = name
+		uv = url.Values{
+			"v1route":   []string{"true"},
+			"accountid": []string{input.AccountId},
+		}
+	} else if schemaVersion == cloudngfwgosdk.SchemaVersionV2 && input.FeatureConfig {
+		uv = url.Values{
+			"featureconfig": []string{"true"},
+		}
+	}
 	c.Log(http.MethodGet, "describe firewall: %s", name)
 	path := Path{
 		V1Path: []string{"v1", "config", "ngfirewalls", name},
-		V2Path: []string{"v2", "config", "ngfirewalls", input.FirewallId},
+		V2Path: []string{"v2", "config", "ngfirewalls", fwId},
 	}
 	var ans firewall.ReadOutput
 	_, err := c.Communicate(
@@ -356,10 +714,21 @@ func (c *Client) ReadFirewall(ctx context.Context, input firewall.ReadInput) (fi
 
 // Delete the given firewall.
 func (c *Client) DeleteFirewall(ctx context.Context, input firewall.DeleteInput) (firewall.DeleteOutput, error) {
+	name := input.Name
 	c.Log(http.MethodDelete, "delete firewall: %s", input.Name)
+	schemaVersion := getSchemaVersion(ctx)
+	fwId := input.FirewallId
+	uv := url.Values{}
+	if schemaVersion == cloudngfwgosdk.SchemaVersionV1 {
+		fwId = name
+		uv = url.Values{
+			"v1route":   []string{"true"},
+			"accountid": []string{input.AccountId},
+		}
+	}
 	path := Path{
 		V1Path: []string{"v1", "config", "ngfirewalls", input.Name},
-		V2Path: []string{"v2", "config", "ngfirewalls", input.FirewallId},
+		V2Path: []string{"v2", "config", "ngfirewalls", fwId},
 	}
 	var ans firewall.DeleteOutput
 	_, err := c.Communicate(
@@ -367,7 +736,7 @@ func (c *Client) DeleteFirewall(ctx context.Context, input firewall.DeleteInput)
 		PermissionFirewall,
 		http.MethodDelete,
 		path,
-		nil,
+		uv,
 		input,
 		&ans,
 	)
@@ -390,10 +759,19 @@ func (c *Client) DeleteFirewallWithWait(ctx context.Context, input firewall.Dele
 // AssociateRulestack updates the local rulestack for the given firewall.
 func (c *Client) AssociateRulestack(ctx context.Context, input firewall.AssociateInput) (firewall.AssociateOutput, error) {
 	c.Log(http.MethodPost, "associating firewall rulestack: %s", input.Firewall)
-	var uv url.Values
+	name := input.Firewall
+	schemaVersion := getSchemaVersion(ctx)
+	fwId := input.FirewallId
+	uv := url.Values{}
+	if schemaVersion == cloudngfwgosdk.SchemaVersionV1 {
+		fwId = name
+		uv = url.Values{
+			"v1route": []string{"true"},
+		}
+	}
 	path := Path{
 		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "rulestack"},
-		V2Path: []string{"v2", "config", "ngfirewalls", input.FirewallId, "rulestack"},
+		V2Path: []string{"v2", "config", "ngfirewalls", fwId, "rulestack"},
 	}
 	var ans firewall.AssociateOutput
 	_, err := c.Communicate(
@@ -428,6 +806,7 @@ func (c *Client) AssociateRulestackWithWait(ctx context.Context, input firewall.
 func (c *Client) UpdateFirewallRulestack(ctx context.Context, input firewall.Info) error {
 	readInput := firewall.ReadInput{
 		FirewallId: input.Id,
+		Name:       input.Name,
 	}
 	readOutput, err := c.ReadFirewall(ctx, readInput)
 	if err != nil {
@@ -490,10 +869,20 @@ func (c *Client) DisassociateRuleStackWithWait(ctx context.Context, input firewa
 // Associate Firewall to Global rulestack
 func (c *Client) AssociateGlobalRuleStack(ctx context.Context, input firewall.AssociateInput) (firewall.AssociateOutput, error) {
 	c.Log(http.MethodPut, "associating firewall to global rulestack: %s", input.Firewall)
-	var uv url.Values
+	c.Log(http.MethodPost, "associating firewall rulestack: %s", input.Firewall)
+	name := input.Firewall
+	schemaVersion := getSchemaVersion(ctx)
+	fwId := input.FirewallId
+	uv := url.Values{}
+	if schemaVersion == cloudngfwgosdk.SchemaVersionV1 {
+		fwId = name
+		uv = url.Values{
+			"v1route": []string{"true"},
+		}
+	}
 	path := Path{
 		V1Path: []string{"v1", "config", "ngfirewalls", input.Firewall, "globalrulestack"},
-		V2Path: []string{"v2", "config", "ngfirewalls", input.FirewallId, "rulestack"},
+		V2Path: []string{"v2", "config", "ngfirewalls", fwId, "rulestack"},
 	}
 	var ans firewall.AssociateOutput
 	_, err := c.Communicate(

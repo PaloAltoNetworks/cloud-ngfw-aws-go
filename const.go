@@ -17,10 +17,15 @@ const (
 
 // Supported Cloud Providers
 const (
-	CloudProviderAWS   = "aws"
-	CloudProviderAzure = "azure"
+	CloudProviderAWS   = "AWS"
+	CloudProviderAzure = "AZURE"
 )
 
 const (
 	TenantVersionV2 = "V2"
+)
+
+const (
+	SchemaVersionV1 = "V1"
+	SchemaVersionV2 = "V2"
 )

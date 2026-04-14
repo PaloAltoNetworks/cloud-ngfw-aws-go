@@ -17,12 +17,12 @@ import (
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api"
 
+	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2"
+	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	cognito "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sts"
-	awsngfw "github.com/paloaltonetworks/cloud-ngfw-aws-go/v2"
-	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/response"
 )
 
 // Client is the client.
@@ -516,12 +516,7 @@ API and getting a response, then the error passed back will be a `api.Status`
 if an error was detected.
 */
 func (c *Client) Communicate(ctx context.Context, auth, method string, path Path, queryParams url.Values, input interface{}, output response.Failure, creds ...*sts.Credentials) (s []byte, e error) {
-	// check if mocking is enabled(for unit test purposes)
-	if c.Mock {
-		log.Printf("mocking response.")
-		return c.MockedResp()
-	}
-
+	log.Printf("path:%s", path)
 	// Sanity check the input.
 	if len(creds) > 1 {
 		return nil, fmt.Errorf("[tenant:%s][region:%s] Only one credentials is allowed",
@@ -661,6 +656,9 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path Path
 			return nil, err
 		}
 	}
+	if c.TenantVersion == TenantVersionV1 && queryParams.Has("v1route") {
+		queryParams.Del("v1route")
+	}
 	api.Logger.Debugf("SDK Request URL: %s", req.URL.String())
 
 	// Optional: v4 sign the request.
@@ -693,6 +691,16 @@ func (c *Client) Communicate(ctx context.Context, auth, method string, path Path
 		}
 		defer resp.Body.Close()
 		body, err = ioutil.ReadAll(resp.Body)
+
+		if resp.StatusCode >= http.StatusBadRequest {
+			if err == nil {
+				log.Printf("body: %s", string(body))
+			}
+			log.Printf("http status: %s code: %d",
+				resp.Status, resp.StatusCode)
+			return nil, fmt.Errorf("API request failed with status code %d",
+				resp.StatusCode)
+		}
 	}
 
 	if err != nil {
@@ -853,6 +861,7 @@ func (c *Client) RequestJwt(ctx context.Context, method string, path []string, q
 func (c *Client) SetEndpoint(ctx context.Context, input api.EndPointInput) error {
 	c.apiPrefix = input.ApiEndpoint
 	c.AuthURL = input.ApiAuthEndpoint
+	c.v2ApiPrefix = strings.ReplaceAll(input.ApiAuthEndpoint, "-auth", "")
 	return nil
 }
 
@@ -866,6 +875,10 @@ func (c *Client) GetMPRegion(ctx context.Context) string {
 
 func (c *Client) GetRegion(ctx context.Context) string {
 	return c.Region
+}
+
+func (c *Client) GetApiPrefix(ctx context.Context) string {
+	return c.apiPrefix
 }
 
 func (c *Client) GetProfile(ctx context.Context) string {
