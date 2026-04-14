@@ -8,7 +8,14 @@ type UpdateInput struct {
 	Firewall string `json:"-"`
 }
 
+type LogDestination struct {
+	Destination     string `json:"LogDestination,omitempty"`
+	DestinationType string `json:"LogDestinationType,omitempty"`
+	LogType         string `json:"LogType,omitempty"`
+}
+
 type Info struct {
+	LogDestinations           []LogDestination   `json:"LogDestinationConfigs"`
 	LogConfig                 *LogConfig         `json:"LogConfig,omitempty"`
 	CloudwatchMetrics         *CloudwatchMetrics `json:"CloudwatchMetrics,omitempty"`
 	UpdateToken               string             `json:"UpdateToken,omitempty"`
@@ -40,6 +47,7 @@ type CloudwatchMetrics struct {
 type ReadInput struct {
 	Firewall   string `json:"Firewall,omitempty"`
 	FirewallId string `json:"FirewallId"`
+	AccountId  string `json:"AccountId"`
 }
 
 type ReadOutput struct {

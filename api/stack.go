@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/paloaltonetworks/cloud-ngfw-aws-go/v2/api/stack"
 )
@@ -63,6 +65,23 @@ func (c *ApiClient) ExportRuleStackXML(ctx context.Context, input stack.ReadInpu
 }
 
 func (c *ApiClient) SaveRuleStackXML(ctx context.Context, input stack.SaveRulestackXmlInput) error {
+	if c.Mock {
+		log.Printf(
+			"mocking save rulestack xml:%s",
+			input.Name)
+		for _, fw := range input.Firewalls {
+			log.Printf(
+				"writing to:%s.txt", fw.FirewallId)
+			os.WriteFile(fmt.Sprintf("/tmp/%s.txt", fw.FirewallId),
+				[]byte(input.RuleStackEntryXml.Xml), 0644)
+		}
+
+		dgFileName := fmt.Sprintf("/tmp/%s_%s.txt", input.Name, c.GetRegion(ctx))
+		log.Printf(
+			"writing to:%s", dgFileName)
+		os.WriteFile(dgFileName, []byte(input.RuleStackEntryXml.Xml), 0644)
+		return nil
+	}
 	if err := c.client.SaveRuleStackXML(ctx, input); err != nil {
 		return err
 	}
@@ -129,6 +148,9 @@ func (c *ApiClient) CommitStatusRuleStack(ctx context.Context, input stack.Simpl
 }
 
 func (c *ApiClient) PollCommitRulestack(ctx context.Context, input stack.SimpleInput) (stack.CommitStatus, error) {
+	if c.Mock {
+		return stack.CommitStatus{}, nil
+	}
 	Logger.Debugf(
 		"commit rulestack %s %s",
 		input.Name,
