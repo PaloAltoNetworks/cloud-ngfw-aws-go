@@ -114,7 +114,6 @@ type Info struct {
 	UserID                       *UserIDConfig        `json:"UserID,omitempty"`
 	CustomerZoneIdList           []string             `json:"CustomerZoneIdList"`
 	Endpoints                    []EndpointConfig     `json:"Endpoints"`
-	Tier                         string               `json:"Tier,omitempty"`
 	DeploymentUpdateToken        string               `json:"DeploymentUpdateToken,omitempty"`
 	SecurityZones                []EndpointConfig     `json:"SecurityZones"`
 	Features                     Features             `json:"Features"`
